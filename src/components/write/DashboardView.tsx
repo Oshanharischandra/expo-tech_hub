@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
-import { PenTool, Upload, FileText, TrendingUp, Users, Eye, Send, X } from 'lucide-react';
+
 import { formatDistanceToNow } from 'date-fns';
 import { Draft } from '../../types/payload';
 import { useApp } from '../../contexts/AppContext';
@@ -48,7 +48,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
 
     const headerContent = (
         <div className="flex items-center gap-2 animate-in fade-in duration-300 text-white">
-            <PenTool className="w-5 h-5 text-primary-500" />
             <span className="text-xl font-bold">Write & Create</span>
         </div>
     );
@@ -79,7 +78,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                     onClick={onImport}
                                 >
                                     <div className="w-12 h-12 bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
-                                        <Upload className="w-6 h-6 text-blue-400" />
+                                        <span className="text-sm font-bold text-blue-400">Import</span>
                                     </div>
                                     <h3 className="text-xl font-semibold text-white mb-2">Import Document</h3>
                                     <p className="text-gray-400 mb-4">
@@ -97,7 +96,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                     onClick={onStartNew}
                                 >
                                     <div className="w-12 h-12 bg-primary-900/30 rounded-lg flex items-center justify-center mb-4">
-                                        <PenTool className="w-6 h-6 text-primary-400" />
+                                        <span className="text-sm font-bold text-primary-400">New</span>
                                     </div>
                                     <h3 className="text-xl font-semibold text-white mb-2">Start New Article</h3>
                                     <p className="text-gray-400 mb-4">
@@ -115,7 +114,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 className="w-full flex items-center gap-4 p-4 bg-primary-600 rounded-xl text-white shadow-lg active:scale-[0.98] transition-all"
                             >
                                 <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                                    <PenTool className="w-5 h-5 text-white" />
+                                    <span className="text-xs font-bold text-white">New</span>
                                 </div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-lg">Start Fresh</h3>
@@ -128,7 +127,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                 className="w-full flex items-center gap-4 p-4 bg-dark-800 border border-dark-700 rounded-xl text-white active:scale-[0.98] transition-all"
                             >
                                 <div className="w-10 h-10 bg-dark-700 rounded-lg flex items-center justify-center">
-                                    <Upload className="w-5 h-5 text-blue-400" />
+                                    <span className="text-xs font-bold text-blue-400">Import</span>
                                 </div>
                                 <div className="text-left">
                                     <h3 className="font-bold text-gray-200">Import File</h3>
@@ -247,12 +246,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                                             onClick={() => onEditDraft(draft)}
                                                             className="py-3.5 flex flex-col gap-1 items-center justify-center text-primary-400 active:bg-primary-900/10 transition-colors"
                                                         >
-                                                            <PenTool className="w-5 h-5" />
+                                                            <span className="text-xs font-bold mb-1">E</span>
                                                             <span className="text-[10px] font-medium">Edit</span>
                                                         </button>
                                                     ) : (
                                                         <div className="py-3.5 flex flex-col gap-1 items-center justify-center text-dark-700 opacity-50 cursor-not-allowed">
-                                                            <PenTool className="w-5 h-5" />
+                                                            <span className="text-xs font-bold mb-1">E</span>
                                                             <span className="text-[10px] font-medium">Edit</span>
                                                         </div>
                                                     )}
@@ -261,7 +260,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                                         onClick={() => onPreviewDraft(draft)}
                                                         className="py-3.5 flex flex-col gap-1 items-center justify-center text-gray-400 active:bg-dark-700/50 transition-colors"
                                                     >
-                                                        <Eye className="w-5 h-5" />
+                                                        <span className="text-xs font-bold mb-1">P</span>
                                                         <span className="text-[10px] font-medium">Preview</span>
                                                     </button>
 
@@ -270,12 +269,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                                             onClick={() => onSubmitDraft(draft.id)}
                                                             className="py-3.5 flex flex-col gap-1 items-center justify-center text-green-400 active:bg-green-900/10 transition-colors"
                                                         >
-                                                            <Send className="w-5 h-5" />
+                                                            <span className="text-xs font-bold mb-1">S</span>
                                                             <span className="text-[10px] font-medium">{draft.status === 'rejected' ? 'Resubmit' : 'Submit'}</span>
                                                         </button>
                                                     ) : (
                                                         <div className="py-3.5 flex flex-col gap-1 items-center justify-center text-dark-700 opacity-50 cursor-not-allowed">
-                                                            <Send className="w-5 h-5" />
+                                                            <span className="text-xs font-bold mb-1">S</span>
                                                             <span className="text-[10px] font-medium">Submit</span>
                                                         </div>
                                                     )}
@@ -284,7 +283,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                                                         onClick={() => onDeleteDraft(draft.id)}
                                                         className="py-3.5 flex flex-col gap-1 items-center justify-center text-red-400 active:bg-red-900/10 transition-colors"
                                                     >
-                                                        <X className="w-5 h-5" />
+                                                        <span className="text-xs font-bold mb-1">D</span>
                                                         <span className="text-[10px] font-medium">Delete</span>
                                                     </button>
                                                 </div>
@@ -295,8 +294,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             </div>
                         ) : (
                             <div className="text-center py-12 bg-dark-900 border border-dark-800 rounded-lg">
-                                <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                                <h3 className="text-lg font-semibold text-white mb-2">No drafts yet</h3>
+                                <h3 className="text-lg font-semibold text-white mb-2 mt-4">No drafts yet</h3>
                                 <p className="text-gray-400 mb-6">
                                     Start writing your first article to see it here
                                 </p>
@@ -324,7 +322,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <FileText className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-bold text-gray-400">D</span>
                                     <span className="text-sm text-gray-400">Drafts</span>
                                 </div>
                                 <span className="text-sm font-medium text-white">
@@ -333,7 +331,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <TrendingUp className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-bold text-gray-400">P</span>
                                     <span className="text-sm text-gray-400">Published</span>
                                 </div>
                                 <span className="text-sm font-medium text-white">
@@ -342,7 +340,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <Users className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm font-bold text-gray-400">F</span>
                                     <span className="text-sm text-gray-400">Followers</span>
                                 </div>
                                 <span className="text-sm font-medium text-white">

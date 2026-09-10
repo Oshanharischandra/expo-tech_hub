@@ -11,7 +11,7 @@ export interface User extends BaseDocument {
   email: string;
   avatar?: Media | null;
   bio?: string;
-  role: 'user' | 'author' | 'editor' | 'admin';
+  role: 'user' | 'admin' | 'co-admin';
   verified: boolean;
   socialLinks?: {
     linkedin?: string;
@@ -29,31 +29,19 @@ export interface User extends BaseDocument {
   badges?: string[];
 }
 
-// Article types - Simplified for actual app usage
-export interface Article {
+// Event types - Replaces Article
+export interface Event {
   id: string;
   title: string;
-  slug: string;
-  excerpt: string;
-  content: string;
-  author: {
-    id: string;
-    name: string;
-    avatar?: string | null;
-    bio: string;
-    followersCount: number;
-    articlesCount: number;
-  };
-  publishedAt: string;
-  readingTime: number;
-  likes: number;
-  views: number;
-  comments: any[]; // Array of comment objects
+  description: string;
+  cover_image?: string | null;
+  event_date: string;
+  venue: string;
+  registration_link?: string;
+  max_team_size?: number;
   tags: string[];
-  featured: boolean;
-  status: 'draft' | 'published' | 'pending';
-  coverImage?: string | null;
-  customAuthor?: string;
+  status: 'pending' | 'approved' | string;
+  submitter_id: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -270,11 +258,15 @@ export interface Draft {
   contentHtml: string;
   coverImage?: string;
   tags: string[];
-  status: 'draft' | 'submitted' | 'published' | 'rejected';
+  status: 'draft' | 'submitted' | 'published' | 'rejected' | 'pending';
   customAuthor?: string;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   wordCount: number;
   readingTime: number;
+  event_date?: string;
+  venue?: string;
+  registration_link?: string;
+  max_team_size?: number;
 }

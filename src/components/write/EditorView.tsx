@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, Save, Send, Loader2, ArrowLeft, Sparkles, Image as ImageIcon, Tag, HelpCircle } from 'lucide-react';
 import { Draft } from '../../types/payload';
 import TiptapEditor from './TiptapEditor';
 import EditorSettingsDrawer from './EditorSettingsDrawer';
@@ -39,7 +38,7 @@ const EditorView: React.FC<EditorViewProps> = ({
     saveError,
     isEditingArticle = false,
 }) => {
-    const [activeSettingsSection, setActiveSettingsSection] = useState<'menu' | 'cover' | 'tags' | 'quiz' | null>(null);
+    const [activeSettingsSection, setActiveSettingsSection] = useState<'menu' | 'cover' | 'tags' | 'quiz' | 'details' | null>(null);
     const [showAiPrompt, setShowAiPrompt] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
     const editorRef = useRef<any>(null);
@@ -68,7 +67,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                         className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-dark-800 flex-shrink-0"
                         title="Back to Dashboard"
                     >
-                        <ArrowLeft className="w-5 h-5" />
+                        <span className="text-sm font-bold">Back</span>
                     </button>
                     <div className="h-6 w-px bg-dark-800 hidden md:block" />
                     <div className="relative flex-1 md:min-w-[400px]">
@@ -82,7 +81,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                         <div className="flex items-center gap-2 mt-0.5 text-[10px] text-gray-500 font-medium whitespace-nowrap overflow-hidden">
                             {saving ? (
                                 <span className="flex items-center gap-1 text-primary-400 animate-pulse">
-                                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                    <span className="text-xs font-bold mr-1">...</span>
                                     Saving changes...
                                 </span>
                             ) : saveError ? (
@@ -102,22 +101,25 @@ const EditorView: React.FC<EditorViewProps> = ({
                             onClick={() => setActiveSettingsSection('cover')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium whitespace-nowrap ${activeSettingsSection === 'cover' ? 'text-primary-400 bg-primary-900/10 border border-primary-500/20' : 'text-gray-400 hover:text-white hover:bg-dark-800 border border-transparent'}`}
                         >
-                            <ImageIcon className="w-4 h-4" />
-                            <span className="hidden lg:inline">Cover</span>
+                            <span className="text-sm">Cover</span>
                         </button>
                         <button
                             onClick={() => setActiveSettingsSection('tags')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium whitespace-nowrap ${activeSettingsSection === 'tags' ? 'text-green-400 bg-green-900/10 border border-green-500/20' : 'text-gray-400 hover:text-white hover:bg-dark-800 border border-transparent'}`}
                         >
-                            <Tag className="w-4 h-4" />
-                            <span className="hidden lg:inline">Tags</span>
+                            <span className="text-sm">Tags</span>
                         </button>
                         <button
                             onClick={() => setActiveSettingsSection('quiz')}
                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium whitespace-nowrap ${activeSettingsSection === 'quiz' ? 'text-purple-400 bg-purple-900/10 border border-purple-500/20' : 'text-gray-400 hover:text-white hover:bg-dark-800 border border-transparent'}`}
                         >
-                            <HelpCircle className="w-4 h-4" />
-                            <span className="hidden lg:inline">Quiz</span>
+                            <span className="text-sm">Quiz</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveSettingsSection('details')}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium whitespace-nowrap ${activeSettingsSection === 'details' ? 'text-blue-400 bg-blue-900/10 border border-blue-500/20' : 'text-gray-400 hover:text-white hover:bg-dark-800 border border-transparent'}`}
+                        >
+                            <span className="text-sm">Details</span>
                         </button>
                     </div>
 
@@ -129,7 +131,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                             className="p-2 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors hidden sm:flex"
                             title="Live Preview"
                         >
-                            <Eye className="w-5 h-5" />
+                            <span className="text-sm font-bold">Preview</span>
                         </button>
 
                         <div className="relative">
@@ -139,7 +141,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                                 className={`p-2 rounded-lg transition-colors ${organizingWithAI || showAiPrompt ? 'text-purple-400 bg-purple-900/10' : 'text-gray-400 hover:text-purple-400 hover:bg-dark-800'}`}
                                 title="AI Organize"
                             >
-                                {organizingWithAI ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                                {organizingWithAI ? <span className="text-xs font-bold px-1">...</span> : <span className="text-sm font-bold">AI</span>}
                             </button>
 
                             {/* Inline AI Prompt Popover */}
@@ -177,7 +179,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                             className="p-2 text-gray-400 hover:text-white hover:bg-dark-800 rounded-lg transition-colors"
                             title="Save Progress"
                         >
-                            <Save className="w-5 h-5" />
+                            <span className="text-sm font-bold">Save</span>
                         </button>
 
                         {!isEditingArticle && (
@@ -186,8 +188,7 @@ const EditorView: React.FC<EditorViewProps> = ({
                               disabled={currentDraft.status === 'submitted' || !currentDraft.title}
                               className="px-4 py-2 bg-primary-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-primary-900/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:bg-primary-700 transition-colors"
                           >
-                              <Send className="w-4 h-4" />
-                              <span className="hidden sm:inline">{currentDraft.status === 'submitted' ? 'Sent' : 'Submit'}</span>
+                              <span className="text-sm font-bold">{currentDraft.status === 'submitted' ? 'Sent' : 'Submit'}</span>
                           </button>
                         )}
                     </div>

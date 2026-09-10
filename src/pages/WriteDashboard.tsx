@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { PenTool, Type, X } from 'lucide-react';
+
 import { useAuth } from '../contexts/AuthContext';
 import { Draft } from '../types/payload';
 import { draftService } from '../services/draftService';
@@ -419,38 +419,18 @@ const WriteDashboard: React.FC = () => {
         return;
       }
 
-      // Always save the draft first to ensure latest content and quiz questions are persisted
-      // This handles both new drafts (creating them) and existing drafts (updating them)
-      const savedDraft = await draftService.saveDraft({
-        id: currentDraft.id,
-        title: currentDraft.title!,
-        contentHtml: currentDraft.contentHtml || '',
-        coverImage: currentDraft.coverImage,
-        tags: currentDraft.tags || [],
-        customAuthor: currentDraft.customAuthor,
-        status: 'draft', // Keep as draft initially during save
-        userId: authState.user.id,
-        quizQuestions: (currentDraft as any).quizQuestions || []
-      });
+      // Submit event directly
+      await draftService.submitEvent(currentDraft as Draft, authState.user.id);
+      
+      if (currentDraft.id) {
+        await draftService.deleteDraft(currentDraft.id);
+        setDrafts(prev => prev.filter(d => d.id !== currentDraft.id));
+      }
 
-      // Now submit for review
-      await draftService.submitForReview(savedDraft.id);
-
-      // Update local state with submitted status
-      setDrafts(prev => {
-        const existing = prev.find(d => d.id === savedDraft.id);
-        if (existing) {
-          return prev.map(d => d.id === savedDraft.id ? { ...savedDraft, status: 'submitted' as const } : d);
-        } else {
-          return [{ ...savedDraft, status: 'submitted' as const }, ...prev];
-        }
-      });
-
-      setCurrentDraft({ ...savedDraft, status: 'submitted' as const });
-      showSuccess('Article submitted for review successfully!');
-
-      // Update autoSavedAt
-      setAutoSavedAt(new Date().toISOString());
+      showSuccess('Event submitted successfully! It is now pending OC review.');
+      
+      setActiveView('options');
+      setCurrentDraft(null);
 
     } catch (error) {
       console.error('Failed to submit for review:', error);
@@ -464,7 +444,6 @@ const WriteDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
         <div className="text-center">
-          <PenTool className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Sign in to start writing</h1>
           <p className="text-gray-400">Create and manage your articles with our premium editor.</p>
         </div>
@@ -557,14 +536,13 @@ const WriteDashboard: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-dark-800">
                   <div className="flex items-center space-x-2">
-                    <Type className="w-5 h-5 text-primary-400" />
                     <h3 className="font-semibold text-white">How to use the editor</h3>
                   </div>
                   <button
                     onClick={handleEditorTutorialClose}
                     className="p-1 hover:bg-dark-800 rounded transition-colors"
                   >
-                    <X className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm font-bold text-gray-400">Close</span>
                   </button>
                 </div>
 

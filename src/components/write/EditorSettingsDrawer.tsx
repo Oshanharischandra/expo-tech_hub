@@ -1,13 +1,12 @@
 
 import React from 'react';
-import { X, Image as ImageIcon, Tag, HelpCircle, ChevronRight, PieChart } from 'lucide-react';
 import { Draft } from '../../types/payload';
 import ImageUpload from './ImageUpload';
 import QuizAuthoring from './QuizAuthoring';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface EditorSettingsDrawerProps {
-    activeSection: 'menu' | 'cover' | 'tags' | 'quiz' | null;
+    activeSection: 'menu' | 'cover' | 'tags' | 'quiz' | 'details' | null;
     onClose: () => void;
     currentDraft: Draft;
     onChange: (updates: Partial<Draft>) => void;
@@ -53,12 +52,13 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                         {activeSection === 'cover' && 'Cover Image'}
                         {activeSection === 'tags' && 'Tags'}
                         {activeSection === 'quiz' && 'Quiz Builder'}
+                        {activeSection === 'details' && 'Event Details'}
                     </h3>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-dark-800 rounded-full text-gray-400 hover:text-white transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <span className="text-sm font-bold">Close</span>
                     </button>
                 </div>
 
@@ -105,7 +105,7 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                             )}
 
                             <div className="flex items-start gap-3 p-4 bg-primary-900/10 rounded-lg border border-primary-500/10">
-                                <ImageIcon className="w-5 h-5 text-primary-400 mt-0.5 flex-shrink-0" />
+
                                 <div>
                                     <h4 className="text-sm font-medium text-primary-300 mb-1">Why add a cover?</h4>
                                     <p className="text-xs text-primary-200/70 leading-relaxed">
@@ -124,7 +124,7 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                                         Add Tags
                                     </label>
                                     <div className="relative">
-                                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+
                                         <input
                                             type="text"
                                             value={tagsInput}
@@ -148,6 +148,23 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                                         Separate with commas or press Enter
                                     </p>
                                 </div>
+                                {/* Default Tags */}
+                                <div className="flex flex-wrap gap-2 pt-2 pb-2">
+                                    {['Robotics', 'IoT', 'Hackathon', 'AI', 'UI/UX'].map((tag) => (
+                                        <button
+                                            key={tag}
+                                            onClick={() => {
+                                                const current = currentDraft.tags || [];
+                                                if (!current.includes(tag)) {
+                                                    onChange({ tags: [...current, tag] });
+                                                }
+                                            }}
+                                            className="px-2 py-1 text-xs border border-dark-700 rounded bg-dark-800 text-gray-300 hover:text-white"
+                                        >
+                                            + {tag}
+                                        </button>
+                                    ))}
+                                </div>
 
                                 {/* Current Tags */}
                                 {(currentDraft.tags || []).length > 0 && (
@@ -162,7 +179,7 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                                                     }}
                                                     className="hover:text-white transition-colors"
                                                 >
-                                                    <X className="w-3 h-3" />
+                                                    <span className="text-xs font-bold px-1">x</span>
                                                 </button>
                                             </span>
                                         ))}
@@ -175,7 +192,7 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                     {activeSection === 'quiz' && (
                         <div className="pb-4">
                             <div className="mb-4 flex items-start gap-3 p-3 bg-primary-900/10 rounded-lg border border-primary-500/10">
-                                <PieChart className="w-4 h-4 text-primary-400 mt-0.5 flex-shrink-0" />
+
                                 <div>
                                     <h4 className="text-xs font-medium text-primary-300 mb-0.5">Interactive Quiz</h4>
                                     <p className="text-[11px] text-gray-400 leading-relaxed">
@@ -190,6 +207,53 @@ const EditorSettingsDrawer: React.FC<EditorSettingsDrawerProps> = ({
                                 initialQuestions={(currentDraft as any).quizQuestions || []}
                                 onChange={(qs) => onChange({ quizQuestions: qs } as any)}
                             />
+                        </div>
+                    )}
+
+                    {activeSection === 'details' && (
+                        <div className="space-y-6">
+                            <div className="bg-dark-900/50 p-4 rounded-xl border border-dark-800 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Event Date & Time</label>
+                                    <input
+                                        type="datetime-local"
+                                        value={currentDraft.event_date ? new Date(currentDraft.event_date).toISOString().slice(0, 16) : ''}
+                                        onChange={(e) => onChange({ event_date: new Date(e.target.value).toISOString() })}
+                                        className="w-full bg-dark-950 border border-dark-700 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Venue</label>
+                                    <input
+                                        type="text"
+                                        value={currentDraft.venue || ''}
+                                        onChange={(e) => onChange({ venue: e.target.value })}
+                                        placeholder="e.g. Main Auditorium"
+                                        className="w-full bg-dark-950 border border-dark-700 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Registration Link</label>
+                                    <input
+                                        type="url"
+                                        value={currentDraft.registration_link || ''}
+                                        onChange={(e) => onChange({ registration_link: e.target.value })}
+                                        placeholder="https://..."
+                                        className="w-full bg-dark-950 border border-dark-700 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Max Team Size</label>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={currentDraft.max_team_size || ''}
+                                        onChange={(e) => onChange({ max_team_size: parseInt(e.target.value) || undefined })}
+                                        placeholder="e.g. 4"
+                                        className="w-full bg-dark-950 border border-dark-700 rounded-xl px-4 py-3 text-white placeholder-dark-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

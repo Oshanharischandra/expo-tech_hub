@@ -227,6 +227,27 @@ class DraftService {
     return true;
   }
 
+  async submitEvent(draft: Draft, userId: string): Promise<boolean> {
+    const payload = {
+      title: draft.title,
+      description: draft.contentHtml || '',
+      cover_image: draft.coverImage || null,
+      event_date: draft.event_date || new Date().toISOString(),
+      venue: draft.venue || 'TBA',
+      registration_link: draft.registration_link || null,
+      max_team_size: draft.max_team_size ? parseInt(String(draft.max_team_size)) : null,
+      tags: draft.tags || [],
+      status: 'pending',
+      submitter_id: userId,
+    };
+    
+    const { error } = await supabase.from('events').insert([payload]);
+    if (error) throw error;
+    
+    return true;
+  }
+
+
   async getSubmittedDrafts(): Promise<Draft[]> {
     const { data, error } = await supabase
       .from('drafts')
