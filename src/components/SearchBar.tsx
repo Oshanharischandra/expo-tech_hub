@@ -5,10 +5,9 @@ import { Search, Clock, TrendingUp } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { searchService } from '../services/searchService';
-import { articlesService } from '../services/articlesService';
+import { eventsService } from '../services/eventsService';
 import supabase from '../services/supabaseClient';
-import { Article } from '../types/payload';
-import Avatar from './common/Avatar';
+import { Event } from '../types/payload';
 
 interface SearchBarProps {
   className?: string;
@@ -19,89 +18,53 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [trendingSearches, setTrendingSearches] = useState<string[]>([]);
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [searchResults, setSearchResults] = useState<Article[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [searchResults, setSearchResults] = useState<Event[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [articlesLoaded, setArticlesLoaded] = useState(false);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   // Initialize Fuse.js for search
   const fuse = useMemo(() => {
-    return new Fuse(articles, {
+    return new Fuse(events, {
       keys: [
         { name: 'title', weight: 0.4 },
-        { name: 'excerpt', weight: 0.3 },
-        { name: 'author.name', weight: 0.2 },
+        { name: 'description', weight: 0.3 },
+        { name: 'venue', weight: 0.2 },
         { name: 'tags', weight: 0.1 }
       ],
       threshold: 0.4,
       includeScore: true,
       minMatchCharLength: 2,
     });
-  }, [articles]);
+  }, [events]);
 
-  // Load articles for search
+  // Load events for search
   useEffect(() => {
-    const loadArticles = async () => {
-      if (articlesLoaded) return;
+    const loadEvents = async () => {
+      if (eventsLoaded) return;
 
       try {
-        const items = await articlesService.listAll();
+        const items = await eventsService.listAll();
 
         if (!items || items.length === 0) {
-          setArticles([]);
-          setArticlesLoaded(true);
+          setEvents([]);
+          setEventsLoaded(true);
           return;
         }
 
-        // Enrich with author profiles
-        const authorIds = Array.from(new Set(items.map(i => i.authorId)));
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id,name,avatar_url,bio,followers_count,articles_count')
-          .in('id', authorIds);
-
-        const idToProfile = new Map((profiles || []).map((p: any) => [p.id, p]));
-        const mapped: Article[] = items.map(item => {
-          const p: any = idToProfile.get(item.authorId);
-          return {
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            excerpt: item.excerpt,
-            content: '',
-            author: {
-              id: item.authorId,
-              name: p?.name || 'Anonymous',
-              avatar: p?.avatar_url || null,
-              bio: p?.bio || '',
-              followersCount: p?.followers_count ?? 0,
-              articlesCount: p?.articles_count ?? 0,
-            },
-            publishedAt: item.publishedAt || new Date().toISOString(),
-            readingTime: 5,
-            likes: item.likes,
-            views: item.views,
-            comments: Array(item.comments).fill({}),
-            tags: item.tags,
-            featured: item.featured,
-            status: 'published',
-            coverImage: item.coverImage || null,
-          };
-        });
-
-        setArticles(mapped);
-        setArticlesLoaded(true);
+        setEvents(items);
+        setEventsLoaded(true);
       } catch (error) {
-        console.error('Failed to load articles for search:', error);
-        setArticles([]);
-        setArticlesLoaded(true);
+        console.error('Failed to load events for search:', error);
+        setEvents([]);
+        setEventsLoaded(true);
       }
     };
 
-    loadArticles();
-  }, [articlesLoaded]);
+    loadEvents();
+  }, [eventsLoaded]);
 
   // Load search data when component mounts
   useEffect(() => {
@@ -116,7 +79,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
 
   // Perform search when query changes
   useEffect(() => {
-    if (!query.trim() || !articlesLoaded) {
+    if (!query.trim() || !eventsLoaded) {
       setSearchResults([]);
       setIsSearching(false);
       return;
@@ -131,30 +94,19 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
     }, 300);
 
     return () => clearTimeout(searchTimeout);
-  }, [query, fuse, articlesLoaded]);
+  }, [query, fuse, eventsLoaded]);
 
   const suggestions = query.trim() ? searchResults.slice(0, 5) : [];
 
-  const { selectedIndex } = useKeyboardNavigation(suggestions, (article) => {
-    navigate(`/article/${article.slug}`);
+  const { selectedIndex } = useKeyboardNavigation(suggestions, (event) => {
+    navigate(`/event/${event.id}`);
     setIsOpen(false);
     setQuery('');
   });
 
-  // Load search data when component mounts
   useEffect(() => {
-    const loadSearchData = async () => {
-      setRecentSearches(searchService.getRecentSearches());
-      const trending = await searchService.getTrendingSearches();
-      setTrendingSearches(trending);
-    };
-
-    loadSearchData();
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -165,14 +117,10 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
 
   const handleSearch = (searchQuery: string) => {
     if (searchQuery.trim()) {
-      // Add to search history
       searchService.addToHistory(searchQuery.trim());
-
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsOpen(false);
       setQuery('');
-
-      // Refresh recent searches
       setRecentSearches(searchService.getRecentSearches());
     }
   };
@@ -191,7 +139,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          placeholder="Search articles, authors, topics..."
+          placeholder="Search events, venues, topics..."
           className="w-full pl-10 pr-4 py-2 bg-dark-800 text-white rounded-lg border border-dark-700 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors"
         />
       </form>
@@ -213,16 +161,16 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
                 ) : suggestions.length > 0 ? (
                   <>
                     <div className="px-3 py-2 text-xs font-medium text-gray-400 uppercase tracking-wide">
-                      Articles
+                      Events
                     </div>
-                    {suggestions.map((article, index) => (
+                    {suggestions.map((event, index) => (
                       <motion.button
-                        key={article.id}
+                        key={event.id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: index * 0.05 }}
                         onClick={() => {
-                          navigate(`/article/${article.slug}`);
+                          navigate(`/event/${event.id}`);
                           setIsOpen(false);
                           setQuery('');
                         }}
@@ -231,20 +179,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ className = '' }) => {
                           : 'hover:bg-dark-800 text-gray-300'
                           }`}
                       >
-                        <div className="flex items-start space-x-3">
-                          <Avatar
-                            src={article.author.avatar}
-                            alt={article.author.name}
-                            className="w-8 h-8 flex-shrink-0"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm line-clamp-1">
-                              {article.title}
-                            </h4>
-                            <p className="text-xs text-gray-400 mt-1">
-                              by {article.author.name}
-                            </p>
-                          </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm line-clamp-1">
+                            {event.title}
+                          </h4>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {event.venue || 'TBA'}
+                          </p>
                         </div>
                       </motion.button>
                     ))}

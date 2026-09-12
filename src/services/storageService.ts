@@ -6,7 +6,7 @@ export interface UploadResult {
 }
 
 class StorageService {
-  private bucketName = 'article-images';
+  private bucketName = 'events';
 
   async uploadImage(file: File, folder: string = 'covers'): Promise<UploadResult> {
     // Validate file type

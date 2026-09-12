@@ -1,442 +1,163 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Draft } from '../types/payload';
-import { draftService } from '../services/draftService';
-import { editorService } from '../services/editorService';
-import { organizeContentWithAI } from '../services/aiService';
-import ImportHandler from '../components/write/ImportHandler';
-import DashboardView from '../components/write/DashboardView';
-import EditorView from '../components/write/EditorView';
-import PreviewView from '../components/write/PreviewView';
-import { useLocation, useSearchParams, useNavigate } from 'react-router-dom';
+import { Event, ImportantDate } from '../types/payload';
+import { eventsService } from '../services/eventsService';
+import { storageService } from '../services/storageService';
+import TiptapEditor from '../components/write/TiptapEditor';
 import { useToast } from '../hooks/useToast';
 
 const WriteDashboard: React.FC = () => {
   const { state: authState } = useAuth();
   const { showSuccess, showError } = useToast();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const loadInFlightRef = useRef(false);
-  const [activeView, setActiveView] = useState<'options' | 'editor' | 'preview'>('options');
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [showEditorTutorial, setShowEditorTutorial] = useState(false);
-  const [hasShownTutorialForNewArticle, setHasShownTutorialForNewArticle] = useState(false);
-  const [organizingWithAI, setOrganizingWithAI] = useState(false);
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [currentDraft, setCurrentDraft] = useState<Partial<Draft> | null>(null);
-  const [tagsInput, setTagsInput] = useState('');
+  
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [autoSavedAt, setAutoSavedAt] = useState<string | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [isEditingArticle, setIsEditingArticle] = useState(false);
+  const [activeView, setActiveView] = useState<'list' | 'form'>('list');
+  const [currentEvent, setCurrentEvent] = useState<Partial<Event> | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [customTagInput, setCustomTagInput] = useState('');
+  
+  const defaultTags = ['Robotics', 'IoT', 'Hackathon', 'AI', 'UI/UX'];
+  const eventCategories = ['Workshops', 'Competitions', 'Meetups'];
 
   useEffect(() => {
-    loadDrafts();
+    if (authState.isAuthenticated && authState.user?.id) {
+      loadMyEvents();
+    }
   }, [authState.isAuthenticated, authState.user?.id]);
 
-  // Load article for editing when ?edit=articleId (editors only)
-  useEffect(() => {
-    const editId = searchParams.get('edit');
-    const isEditor = authState.user?.role === 'editor' || authState.user?.role === 'admin';
-    if (!editId || !isEditor || !authState.isAuthenticated || !authState.user) return;
-
-    const loadArticleForEdit = async () => {
-      setLoading(true);
-      try {
-        const article = await editorService.getArticleForEdit(editId);
-        if (article) {
-          const draftLike = {
-            id: article.id,
-            title: article.title || '',
-            contentHtml: article.contentHtml || '',
-            coverImage: article.coverImage,
-            tags: article.tags || [],
-            customAuthor: article.customAuthor,
-            status: 'published' as const,
-            createdAt: '',
-            updatedAt: '',
-            wordCount: 0,
-            readingTime: 5,
-          };
-          (draftLike as any).quizQuestions = (article as any).quizQuestions || [];
-          setCurrentDraft(draftLike);
-          setIsEditingArticle(true);
-          setActiveView('editor');
-        } else {
-          showError('Article not found');
-          setSearchParams({});
-        }
-      } catch (e) {
-        console.error('Failed to load article for edit:', e);
-        showError('Failed to load article');
-        setSearchParams({});
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadArticleForEdit();
-  }, [searchParams, authState.user?.role, authState.isAuthenticated]);
-
-  // Show editor tutorial when creating new article (only once per new article)
-  useEffect(() => {
-    if (activeView === 'editor' && currentDraft && !currentDraft.id && !hasShownTutorialForNewArticle) {
-      setShowEditorTutorial(true);
-      setHasShownTutorialForNewArticle(true);
-    }
-  }, [activeView, currentDraft, hasShownTutorialForNewArticle]);
-
-  const handleEditorTutorialClose = () => {
-    setShowEditorTutorial(false);
-  };
-
-  // Sync tagsInput with currentDraft.tags
-  useEffect(() => {
-    if (currentDraft?.tags) {
-      setTagsInput(currentDraft.tags.join(', '));
-    } else {
-      setTagsInput('');
-    }
-  }, [currentDraft?.tags]);
-
-  // Revalidate on route focus/popstate and window focus
-  // Removed aggressive window focus revalidation to prevent spam
-  /*
-  useEffect(() => {
-    const onFocus = () => {
-      if (location.pathname === '/write') {
-        loadDrafts();
-      }
-    };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [location.pathname]);
-  */
-
-  useEffect(() => {
-    // React Router updates location.key on back/forward
-    if (location.pathname === '/write') {
-      loadDrafts();
-    }
-  }, [location.key, location.pathname]);
-
-  // Apply syntax highlighting in preview when content changes
-  useEffect(() => {
-    if (activeView !== 'preview') return;
-    // Defer to next tick to ensure DOM is painted
-    const id = window.setTimeout(async () => {
-      const mod: any = await import('highlight.js/lib/common');
-      const hljs = mod.default || mod;
-      // Highlight <pre><code>...</code></pre>
-      document.querySelectorAll('pre code').forEach((el) => {
-        hljs.highlightElement(el as HTMLElement);
-      });
-      // Highlight Quill code blocks (<pre class="ql-syntax">...)
-
-      document.querySelectorAll('pre.ql-syntax').forEach((el) => {
-        // Wrap contents in a code element for consistent styling if not present
-        if (!el.querySelector('code')) {
-          const code = document.createElement('code');
-          code.textContent = (el as HTMLElement).textContent || '';
-          el.textContent = '';
-          el.appendChild(code);
-          hljs.highlightElement(code);
-        } else {
-          const code = el.querySelector('code') as HTMLElement;
-          hljs.highlightElement(code);
-        }
-      });
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, [activeView, currentDraft?.contentHtml]);
-
-  const loadDrafts = async () => {
-    if (loadInFlightRef.current) return;
-    loadInFlightRef.current = true;
+  const loadMyEvents = async () => {
     setLoading(true);
     try {
-      if (!authState.isAuthenticated || !authState.user?.id) {
-        setDrafts([]);
-        return;
-      }
-      const data = await draftService.getDrafts(authState.user.id);
-      setDrafts(data);
+      const events = await eventsService.listMyEvents(authState.user!.id);
+      setMyEvents(events);
     } catch (error) {
-      console.error('Failed to load drafts:', error);
-      showError('Failed to load drafts');
+      console.error('Failed to load events:', error);
+      showError('Failed to load your events');
     } finally {
-      loadInFlightRef.current = false;
       setLoading(false);
     }
   };
 
   const handleStartNew = () => {
-    setCurrentDraft({
+    setCurrentEvent({
       title: '',
-      contentHtml: '',
+      description: '',
       tags: [],
-      status: 'draft'
+      important_dates: [],
+      category: 'Workshops',
     });
-    setHasShownTutorialForNewArticle(false); // Reset tutorial flag for new article
-    setActiveView('editor');
+    setActiveView('form');
   };
 
-  const handleImportComplete = (contentHtml: string, title: string) => {
-    setCurrentDraft({
-      title,
-      contentHtml: contentHtml || '',
-      tags: [],
-      status: 'draft'
-    });
-    setHasShownTutorialForNewArticle(false); // Reset tutorial flag for imported article
-    setShowImportModal(false);
-    setActiveView('editor');
+  const handleEdit = (event: Event) => {
+    setCurrentEvent(event);
+    setActiveView('form');
   };
 
-  const handleAiOrganize = async (prompt: string) => {
-    //console.log('[WriteDashboard] handleAiOrganize called. Prompt:', prompt);
-    if (!currentDraft?.contentHtml) {
-      console.warn('[WriteDashboard] contentHtml is missing');
-      return;
-    }
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    setOrganizingWithAI(true);
+    setUploadingImage(true);
     try {
-      //console.log('[WriteDashboard] Calling organizeContentWithAI...');
-      const result = await organizeContentWithAI(currentDraft.contentHtml, prompt);
-      //console.log('[WriteDashboard] organizeContentWithAI completed. Result tags:', result.suggestedTags);
-
-      // Update content with optimized HTML
-      const updatedDraft = {
-        ...currentDraft,
-        contentHtml: result.optimizedHtml,
-      };
-
-      // Add suggested tags if none are present and AI suggested some
-      if ((!currentDraft.tags || currentDraft.tags.length === 0) && result.suggestedTags) {
-        updatedDraft.tags = result.suggestedTags;
-        showSuccess('Content organized with AI and tags added!');
-      } else {
-        showSuccess('Content organized with AI!');
-      }
-
-      setCurrentDraft(updatedDraft);
-    } catch (error) {
-      console.error('[WriteDashboard] AI organization failed:', error);
-      showError('Failed to organize with AI. Please try again.');
+      const result = await storageService.uploadImage(file, 'events');
+      setCurrentEvent(prev => prev ? { ...prev, cover_image: result.url } : null);
+      showSuccess('Cover image uploaded successfully');
+    } catch (error: any) {
+      console.error('Image upload failed:', error);
+      showError(error.message || 'Failed to upload image');
     } finally {
-      setOrganizingWithAI(false);
+      setUploadingImage(false);
+      e.target.value = '';
     }
   };
 
-  const handleEditDraft = (draft: Draft) => {
-    setCurrentDraft(draft);
-    setActiveView('editor');
-  };
-
-  const handleDeleteDraft = async (draftId: string) => {
-    // Find the draft to check status
-    const draftToDelete = drafts.find(d => d.id === draftId);
-    if (!draftToDelete) return;
-
-    const message = draftToDelete.status === 'published'
-      ? 'WARNING: This will delete both the draft AND the published article from the website. This action cannot be undone. Are you sure?'
-      : 'Are you sure you want to delete this draft? This action cannot be undone.';
-
-    if (!window.confirm(message)) {
-      return;
-    }
-
-    try {
-      if (draftToDelete.status === 'published' && authState.user?.id && draftToDelete.title) {
-        // Attempt to delete cascade
-        await draftService.deleteDraftAndArticle(draftId, authState.user.id, draftToDelete.title);
+  const toggleTag = (tag: string) => {
+    setCurrentEvent(prev => {
+      if (!prev) return prev;
+      const currentTags = prev.tags || [];
+      if (currentTags.includes(tag)) {
+        return { ...prev, tags: currentTags.filter(t => t !== tag) };
       } else {
-        await draftService.deleteDraft(draftId);
+        return { ...prev, tags: [...currentTags, tag] };
       }
-
-      setDrafts(prev => prev.filter(d => d.id !== draftId));
-
-      // If the deleted draft was the current one, reset state
-      if (currentDraft?.id === draftId) {
-        setCurrentDraft({
-          title: '',
-          contentHtml: '',
-          tags: [],
-          status: 'draft'
-        });
-        setActiveView('options');
-      }
-      showSuccess('Deleted successfully');
-    } catch (error) {
-      console.error('Failed to delete draft:', error);
-      showError('Failed to delete');
-    }
+    });
   };
 
-  const handleSubmitDraft = async (draftId: string) => {
-    try {
-      await draftService.submitForReview(draftId);
-      setDrafts(prev => prev.map(d =>
-        d.id === draftId ? { ...d, status: 'submitted' as const } : d
-      ));
-    } catch (error) {
-      console.error('Failed to submit draft:', error);
-    }
-  };
-
-  const handlePreviewDraft = (draft: Draft) => {
-    setCurrentDraft(draft);
-    setActiveView('preview');
-  };
-
-  const handleSaveDraft = async () => {
-    if (!currentDraft || currentDraft.contentHtml === undefined) return;
-
-    // Check if there's actual content (ignoring empty paragraphs/tags, but keeping images)
-    const hasContent = !!(currentDraft.contentHtml && (
-      currentDraft.contentHtml.replace(/<[^>]*>/g, '').trim().length > 0 ||
-      currentDraft.contentHtml.includes('<img')
-    ));
-
-    if (!hasContent) return;
-    if (saving) return;
-
-    if (!authState.isAuthenticated || !authState.user?.id) {
-      setSaveError('Please sign in to save drafts.');
-      return;
-    }
-    setSaving(true);
-    setSaveError(null);
-    try {
-      if (isEditingArticle && currentDraft.id) {
-        await editorService.updateArticle(currentDraft.id, {
-          title: currentDraft.title || 'Untitled',
-          excerpt: editorService.extractExcerpt(currentDraft.contentHtml || ''),
-          contentHtml: currentDraft.contentHtml || '',
-          coverImage: currentDraft.coverImage,
-          tags: currentDraft.tags || [],
-          customAuthor: currentDraft.customAuthor,
-        });
-        setAutoSavedAt(new Date().toISOString());
-        showSuccess('Article updated successfully');
-      } else {
-        const wasNew = !currentDraft.id;
-        const savedDraft = await draftService.saveDraft({
-          id: currentDraft.id,
-          title: currentDraft.title || 'Untitled',
-          contentHtml: currentDraft.contentHtml || '',
-          coverImage: currentDraft.coverImage,
-          tags: currentDraft.tags || [],
-          customAuthor: currentDraft.customAuthor,
-          status: 'draft',
-          userId: authState.user?.id,
-          quizQuestions: (currentDraft as any).quizQuestions || []
-        });
-
-        setDrafts(prev => {
-          const existing = prev.find(d => d.id === savedDraft.id);
-          if (existing) {
-            return prev.map(d => d.id === savedDraft.id ? savedDraft : d);
-          } else {
-            return [savedDraft, ...prev];
+  const handleCustomTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const newTag = customTagInput.trim();
+      if (newTag) {
+        setCurrentEvent(prev => {
+          if (!prev) return prev;
+          const currentTags = prev.tags || [];
+          if (!currentTags.includes(newTag)) {
+            return { ...prev, tags: [...currentTags, newTag] };
           }
+          return prev;
         });
-
-        setCurrentDraft(savedDraft);
-        if (wasNew) loadDrafts();
-        setAutoSavedAt(new Date().toISOString());
+        setCustomTagInput('');
       }
-    } catch (error) {
-      console.error('Failed to save:', error);
-      const msg = error instanceof Error ? error.message : 'Failed to save draft';
-      setSaveError(msg);
-    } finally {
-      setSaving(false);
     }
   };
 
-  // Debounced auto-save when title, tags, or contentHtml change
-  useEffect(() => {
-    if (!currentDraft) return;
-    if (currentDraft.status === 'submitted' && !isEditingArticle) return;
+  const addImportantDate = () => {
+    setCurrentEvent(prev => {
+      if (!prev) return prev;
+      const newDate: ImportantDate = { label: '', date_value: '', is_primary: false };
+      return { ...prev, important_dates: [...(prev.important_dates || []), newDate] };
+    });
+  };
 
-    // Auto-save only if there is content
-    const hasContent = !!(currentDraft.contentHtml && (
-      currentDraft.contentHtml.replace(/<[^>]*>/g, '').trim().length > 0 ||
-      currentDraft.contentHtml.includes('<img')
-    ));
+  const removeImportantDate = (index: number) => {
+    setCurrentEvent(prev => {
+      if (!prev) return prev;
+      const dates = [...(prev.important_dates || [])];
+      dates.splice(index, 1);
+      return { ...prev, important_dates: dates };
+    });
+  };
 
-    if (!hasContent) return;
-    if (saving) return;
-
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current);
-    }
-    saveTimerRef.current = window.setTimeout(() => {
-      handleSaveDraft();
-    }, 30000);
-
-    return () => {
-      if (saveTimerRef.current) {
-        window.clearTimeout(saveTimerRef.current);
+  const updateImportantDate = (index: number, field: keyof ImportantDate, value: any) => {
+    setCurrentEvent(prev => {
+      if (!prev) return prev;
+      const dates = [...(prev.important_dates || [])];
+      
+      if (field === 'is_primary' && value === true) {
+        dates.forEach(d => d.is_primary = false);
       }
-    };
-  }, [
-    currentDraft?.id,
-    currentDraft?.title,
-    currentDraft?.contentHtml,
-    (currentDraft?.tags || []).join(','),
-    // trigger autosave when quiz questions change
-    JSON.stringify((currentDraft as any)?.quizQuestions || []),
-    saving,
-  ]);
+      
+      dates[index] = { ...dates[index], [field]: value };
+      return { ...prev, important_dates: dates };
+    });
+  };
 
-  const handleSubmitForReview = async () => {
-    // Validate title before submission
-    if (!currentDraft?.title || currentDraft.title.trim().length === 0) {
-      showError('Please enter a title before submitting for review');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentEvent?.title || !currentEvent.description || !currentEvent.event_date || !currentEvent.venue) {
+      showError('Please fill out all required fields');
       return;
     }
 
-    // Validate content before submission
-    if (!currentDraft?.contentHtml || currentDraft.contentHtml.trim().length === 0) {
-      showError('Please add content before submitting for review');
-      return;
-    }
-
-    // Set saving state to verify operations
-    setSaving(true);
-
+    setSubmitting(true);
     try {
-      if (!authState.isAuthenticated || !authState.user?.id) {
-        showError('Please sign in to submit.');
-        return;
+      if (currentEvent.id) {
+        await eventsService.updateEvent(currentEvent.id, currentEvent);
+        showSuccess('Event updated successfully! It is now pending OC review.');
+      } else {
+        await eventsService.submitEvent(currentEvent, authState.user!.id);
+        showSuccess('Event submitted successfully! It is now pending OC review.');
       }
-
-      // Submit event directly
-      await draftService.submitEvent(currentDraft as Draft, authState.user.id);
-      
-      if (currentDraft.id) {
-        await draftService.deleteDraft(currentDraft.id);
-        setDrafts(prev => prev.filter(d => d.id !== currentDraft.id));
-      }
-
-      showSuccess('Event submitted successfully! It is now pending OC review.');
-      
-      setActiveView('options');
-      setCurrentDraft(null);
-
+      setActiveView('list');
+      loadMyEvents();
     } catch (error) {
-      console.error('Failed to submit for review:', error);
-      showError('Failed to submit for review. Please try again.');
+      console.error('Submission failed:', error);
+      showError('Failed to submit event');
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   };
 
@@ -444,152 +165,344 @@ const WriteDashboard: React.FC = () => {
     return (
       <div className="min-h-screen bg-dark-950 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Sign in to start writing</h1>
-          <p className="text-gray-400">Create and manage your articles with our premium editor.</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Sign in to start</h1>
+          <p className="text-gray-400">Sign in to submit and manage your events.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-dark-950 overflow-x-hidden w-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <AnimatePresence mode="wait">
-          {activeView === 'options' && (
-            <DashboardView
-              drafts={drafts}
-              loading={loading}
-              userFollowersCount={(authState.user as any)?.followersCount || 0}
-              onStartNew={handleStartNew}
-              onImport={() => setShowImportModal(true)}
-              onEditDraft={handleEditDraft}
-              onPreviewDraft={handlePreviewDraft}
-              onSubmitDraft={handleSubmitDraft}
-              onDeleteDraft={handleDeleteDraft}
-            />
-          )}
-
-          {activeView === 'editor' && currentDraft && (
-            <EditorView
-              currentDraft={currentDraft as Draft}
-              onChange={(updates) => setCurrentDraft(prev => ({ ...prev!, ...updates }))}
-              onSave={handleSaveDraft}
-              onSubmit={handleSubmitForReview}
-              onPreview={() => setActiveView('preview')}
-              onBack={() => {
-                if (isEditingArticle) {
-                  setSearchParams({});
-                  setIsEditingArticle(false);
-                  setCurrentDraft(null);
-                  navigate('/editor');
-                } else {
-                  setActiveView('options');
-                }
-              }}
-              isEditingArticle={isEditingArticle}
-              onOrganize={handleAiOrganize}
-              organizingWithAI={organizingWithAI}
-              saving={saving}
-              autoSavedAt={autoSavedAt}
-              saveError={saveError}
-              tagsInput={tagsInput}
-              setTagsInput={setTagsInput}
-            />
-          )}
-
-          {activeView === 'preview' && currentDraft && (
-            <PreviewView
-              currentDraft={currentDraft as Draft}
-              onBack={() => setActiveView('options')}
-              onEdit={() => setActiveView('editor')}
-            />
-          )}
-        </AnimatePresence>
-
-
-
-        {/* Import Modal */}
-        <AnimatePresence>
-          {showImportModal && (
-            <ImportHandler
-              onImportComplete={handleImportComplete}
-              onClose={() => setShowImportModal(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Editor Tutorial */}
-        <AnimatePresence>
-          {showEditorTutorial && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex items-center justify-center p-4 overflow-y-auto"
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-dark-900 border border-dark-800 rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto my-auto"
+    <div className="min-h-screen bg-dark-950 px-4 py-8">
+      <div className="max-w-4xl mx-auto w-full">
+        {activeView === 'list' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-bold text-white">Your Submitted Events</h1>
+              <button 
+                onClick={handleStartNew}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg font-bold transition-colors"
               >
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-dark-800">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-semibold text-white">How to use the editor</h3>
-                  </div>
-                  <button
-                    onClick={handleEditorTutorialClose}
-                    className="p-1 hover:bg-dark-800 rounded transition-colors"
-                  >
-                    <span className="text-sm font-bold text-gray-400">Close</span>
-                  </button>
-                </div>
+                Start New Event
+              </button>
+            </div>
 
-                {/* Content */}
-                <div className="p-4 space-y-4">
-                  <div className="text-sm text-gray-300">
-                    <p className="mb-3 font-medium text-white">Select text to format with the floating toolbar, or use the settings menu:</p>
-                    <ul className="space-y-2 text-xs">
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-primary-400 rounded-full mr-3 flex-shrink-0"></span>
-                        <span><strong>Bold</strong>, <em>italic</em>, <u>underline</u>, or <code className="bg-dark-800 px-1 rounded text-primary-300">code</code> from the floating toolbar</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-primary-400 rounded-full mr-3 flex-shrink-0"></span>
-                        <span>Headers (H1–H3), lists, and blockquotes for structure</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-primary-400 rounded-full mr-3 flex-shrink-0"></span>
-                        <span>Add images and resize them by dragging the corners</span>
-                      </li>
-                      <li className="flex items-center">
-                        <span className="w-2 h-2 bg-primary-400 rounded-full mr-3 flex-shrink-0"></span>
-                        <span>Use the settings menu (left) for cover image, tags, and quiz</span>
-                      </li>
-                    </ul>
-
-                    <div className="mt-4 pt-3 border-t border-dark-700">
-                      <p className="text-xs text-gray-400">
-                        <span className="font-medium text-white">🧠 Quiz Builder:</span> Open settings and use the quiz section to add questions. Use <span className="text-primary-300 font-medium">Generate with AI</span> to create questions from your content.
+            {loading ? (
+              <p className="text-gray-400">Loading events...</p>
+            ) : myEvents.length > 0 ? (
+              <div className="grid gap-4">
+                {myEvents.map(event => (
+                  <div key={event.id} className="bg-dark-900 border border-dark-800 rounded-xl p-4 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-lg font-bold text-white">{event.title}</h3>
+                      <p className="text-sm text-gray-400">
+                        Date: {new Date(event.event_date).toLocaleDateString()} | Venue: {event.venue}
                       </p>
                     </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`px-2 py-1 text-xs font-bold rounded uppercase ${
+                        event.status === 'approved' ? 'bg-green-900/50 text-green-400' :
+                        event.status === 'rejected' ? 'bg-red-900/50 text-red-400' :
+                        'bg-yellow-900/50 text-yellow-400'
+                      }`}>
+                        {event.status}
+                      </span>
+                      <button 
+                        onClick={() => handleEdit(event)}
+                        className="text-primary-400 hover:text-primary-300 font-medium text-sm"
+                      >
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-dark-900 border border-dark-800 rounded-xl p-8 text-center">
+                <p className="text-gray-400 mb-4">You haven't submitted any events yet.</p>
+                <button 
+                  onClick={handleStartNew}
+                  className="text-primary-400 font-bold hover:underline"
+                >
+                  Create your first event
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeView === 'form' && currentEvent && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-bold text-white">
+                {currentEvent.id ? 'Edit Event' : 'New Event'}
+              </h1>
+              <button 
+                onClick={() => setActiveView('list')}
+                className="text-gray-400 hover:text-white font-medium transition-colors"
+              >
+                Back to List
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="bg-dark-900 border border-dark-800 rounded-xl p-6 space-y-6">
+              
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Event Category *</label>
+                <div className="flex flex-wrap gap-4">
+                  {eventCategories.map(cat => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setCurrentEvent({ ...currentEvent, category: cat })}
+                      className={`px-6 py-2 rounded-lg font-bold border transition-colors ${
+                        currentEvent.category === cat
+                        ? 'bg-primary-900/50 text-primary-400 border-primary-500/50'
+                        : 'bg-dark-950 text-gray-400 border-dark-700 hover:text-white'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Photo Upload */}
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Event Flyer / Cover Image</label>
+                {currentEvent.cover_image ? (
+                  <div className="relative w-full h-48 bg-dark-950 rounded-lg overflow-hidden border border-dark-700 mb-2">
+                    <img src={currentEvent.cover_image} alt="Cover" className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => setCurrentEvent({ ...currentEvent, cover_image: undefined })}
+                      className="absolute top-2 right-2 bg-dark-900/80 text-white px-2 py-1 rounded text-xs font-bold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload} 
+                      disabled={uploadingImage}
+                      className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-700 disabled:opacity-50"
+                    />
+                    {uploadingImage && <p className="text-xs text-primary-400 mt-2">Uploading...</p>}
+                  </div>
+                )}
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Event Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={currentEvent.title || ''}
+                  onChange={(e) => setCurrentEvent({ ...currentEvent, title: e.target.value })}
+                  placeholder="e.g., Annual Tech Hackathon"
+                  className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
+                />
+              </div>
+
+              {/* Description (Tiptap) */}
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-2">Event Description *</label>
+                <div className="border border-dark-700 rounded-lg overflow-hidden bg-dark-950">
+                  <TiptapEditor
+                    value={currentEvent.description || ''}
+                    onChange={(html) => setCurrentEvent({ ...currentEvent, description: html })}
+                    placeholder="Describe your event..."
+                    className="prose-invert max-w-none p-4 min-h-[200px] outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Standard Fields */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-300 mb-2">Event Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={currentEvent.event_date ? new Date(currentEvent.event_date).toISOString().slice(0, 16) : ''}
+                    onChange={(e) => setCurrentEvent({ ...currentEvent, event_date: new Date(e.target.value).toISOString() })}
+                    className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-300 mb-2">Venue *</label>
+                  <input
+                    type="text"
+                    required
+                    value={currentEvent.venue || ''}
+                    onChange={(e) => setCurrentEvent({ ...currentEvent, venue: e.target.value })}
+                    placeholder="e.g., Main Auditorium"
+                    className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-300 mb-2">Registration Link</label>
+                  <input
+                    type="url"
+                    value={currentEvent.registration_link || ''}
+                    onChange={(e) => setCurrentEvent({ ...currentEvent, registration_link: e.target.value })}
+                    placeholder="https://..."
+                    className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-300 mb-2">Max Team Size</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={currentEvent.max_team_size || ''}
+                    onChange={(e) => setCurrentEvent({ ...currentEvent, max_team_size: parseInt(e.target.value) || undefined })}
+                    placeholder="e.g., 4"
+                    className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Important Dates */}
+              <div className="border-t border-dark-800 pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="block text-sm font-bold text-gray-300">Important Dates</label>
+                  <button 
+                    type="button" 
+                    onClick={addImportantDate}
+                    className="text-primary-400 hover:text-primary-300 text-sm font-bold"
+                  >
+                    + Add Date
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {(currentEvent.important_dates || []).map((date, index) => (
+                    <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end bg-dark-950 p-4 rounded-lg border border-dark-700">
+                      <div className="w-full md:flex-1">
+                        <label className="block text-xs font-bold text-gray-400 mb-1">Label</label>
+                        <input
+                          type="text"
+                          required
+                          value={date.label}
+                          onChange={(e) => updateImportantDate(index, 'label', e.target.value)}
+                          placeholder="e.g., Registration Deadline"
+                          className="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-white focus:border-primary-500 outline-none text-sm"
+                        />
+                      </div>
+                      <div className="w-full md:flex-1">
+                        <label className="block text-xs font-bold text-gray-400 mb-1">Date & Time</label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={date.date_value ? new Date(date.date_value).toISOString().slice(0, 16) : ''}
+                          onChange={(e) => updateImportantDate(index, 'date_value', new Date(e.target.value).toISOString())}
+                          className="w-full bg-dark-900 border border-dark-700 rounded-lg px-3 py-2 text-white focus:border-primary-500 outline-none text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4 pb-2">
+                        <button
+                          type="button"
+                          onClick={() => updateImportantDate(index, 'is_primary', !date.is_primary)}
+                          className={`text-sm font-bold ${date.is_primary ? 'text-primary-400' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          {date.is_primary ? '[x] Primary' : '[ ] Primary'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeImportantDate(index)}
+                          className="text-red-400 hover:text-red-300 text-sm font-bold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!currentEvent.important_dates || currentEvent.important_dates.length === 0) && (
+                    <p className="text-sm text-gray-500 italic">No important dates added.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="border-t border-dark-800 pt-6">
+                <label className="block text-sm font-bold text-gray-300 mb-2">Tags</label>
+                
+                {/* Selected Tags Display */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {(currentEvent.tags || []).map(tag => (
+                    <span
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className="px-3 py-1.5 rounded text-sm font-bold border bg-primary-900/30 text-primary-400 border-primary-500/30 cursor-pointer hover:bg-red-900/30 hover:text-red-400 hover:border-red-500/30 transition-colors flex items-center gap-2"
+                      title="Click to remove"
+                    >
+                      {tag} <span className="font-mono">x</span>
+                    </span>
+                  ))}
+                  {(!currentEvent.tags || currentEvent.tags.length === 0) && (
+                    <span className="text-sm text-gray-500">No tags selected.</span>
+                  )}
+                </div>
+
+                {/* Suggestions */}
+                <div className="mb-4">
+                  <span className="text-xs text-gray-400 mr-3">Suggestions:</span>
+                  <div className="inline-flex flex-wrap gap-2">
+                    {defaultTags.map(tag => {
+                      if ((currentEvent.tags || []).includes(tag)) return null;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className="px-2 py-1 rounded text-xs font-bold border bg-dark-950 text-gray-400 border-dark-700 hover:text-white transition-colors"
+                        >
+                          + {tag}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Footer */}
-                <div className="flex justify-end p-4 border-t border-dark-800">
-                  <button
-                    onClick={handleEditorTutorialClose}
-                    className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded text-sm font-medium transition-colors"
-                  >
-                    Got it!
-                  </button>
+                {/* Custom Tag Input */}
+                <div>
+                  <input
+                    type="text"
+                    value={customTagInput}
+                    onChange={(e) => setCustomTagInput(e.target.value)}
+                    onKeyDown={handleCustomTagKeyDown}
+                    placeholder="Type a custom tag and press Enter..."
+                    className="w-full md:w-1/2 bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none text-sm"
+                  />
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              </div>
+
+              {/* Submit Actions */}
+              <div className="pt-6 border-t border-dark-800 flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setActiveView('list')}
+                  className="px-6 py-2 rounded-lg font-bold text-gray-300 hover:text-white hover:bg-dark-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-bold transition-colors"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Event'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );

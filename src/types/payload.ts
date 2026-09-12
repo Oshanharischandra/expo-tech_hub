@@ -29,6 +29,12 @@ export interface User extends BaseDocument {
   badges?: string[];
 }
 
+export interface ImportantDate {
+  label: string;
+  date_value: string;
+  is_primary: boolean;
+}
+
 // Event types - Replaces Article
 export interface Event {
   id: string;
@@ -38,6 +44,9 @@ export interface Event {
   event_date: string;
   venue: string;
   registration_link?: string;
+  registration_deadline?: string;
+  important_dates?: ImportantDate[];
+  category?: string;
   max_team_size?: number;
   tags: string[];
   status: 'pending' | 'approved' | string;

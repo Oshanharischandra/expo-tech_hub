@@ -1,19 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { articlesService } from '../services/articlesService';
-import supabase from '../services/supabaseClient';
-import { Article } from '../types/payload';
+import { eventsService } from '../services/eventsService';
+import { Event } from '../types/payload';
 
-export type SearchType = 'articles' | 'authors' | 'tags';
-
-export interface Author {
-    id: string;
-    name: string;
-    avatar: string;
-    bio: string;
-    followersCount: number;
-    articlesCount: number;
-}
+export type SearchType = 'events' | 'tags';
 
 export interface Tag {
     name: string;
@@ -22,58 +12,42 @@ export interface Tag {
 
 export const useArticleSearch = () => {
     const [query, setQuery] = useState('');
-    const [searchType, setSearchType] = useState<SearchType>('articles');
-    const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'likes'>('relevance');
+    const [searchType, setSearchType] = useState<SearchType>('events');
+    const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'team_size'>('relevance');
 
     // Data
-    const [articles, setArticles] = useState<Article[]>([]);
+    const [events, setEvents] = useState<Event[]>([]);
 
     // Internal search state
     const [searchResults, setSearchResults] = useState<any[]>([]);
-    const [searchResultsType, setSearchResultsType] = useState<SearchType>('articles');
+    const [searchResultsType, setSearchResultsType] = useState<SearchType>('events');
 
     const [isSearching, setIsSearching] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Derived Data
-    const authors = useMemo(() => {
-        const uniqueAuthors = new Map<string, Author>();
-        articles.forEach(article => {
-            if (!uniqueAuthors.has(article.author.id)) {
-                uniqueAuthors.set(article.author.id, article.author as Author);
-            }
-        });
-        return Array.from(uniqueAuthors.values());
-    }, [articles]);
-
     const tags = useMemo(() => {
         const tagCounts = new Map<string, number>();
-        articles.forEach(article => {
-            article.tags.forEach(tag => {
+        events.forEach(event => {
+            event.tags?.forEach(tag => {
                 tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
             });
         });
         return Array.from(tagCounts.entries())
             .map(([name, count]) => ({ name, count } as Tag))
             .sort((a, b) => b.count - a.count);
-    }, [articles]);
+    }, [events]);
 
     // Fuse Instances
-    const fuseArticles = useMemo(() => new Fuse(articles, {
+    const fuseEvents = useMemo(() => new Fuse(events, {
         keys: [
             { name: 'title', weight: 0.4 },
-            { name: 'excerpt', weight: 0.3 },
+            { name: 'description', weight: 0.3 },
             { name: 'tags', weight: 0.2 },
-            { name: 'author.name', weight: 0.1 }
+            { name: 'venue', weight: 0.1 }
         ],
         threshold: 0.4,
         includeScore: true
-    }), [articles]);
-
-    const fuseAuthors = useMemo(() => new Fuse(authors, {
-        keys: ['name', 'bio'],
-        threshold: 0.4
-    }), [authors]);
+    }), [events]);
 
     const fuseTags = useMemo(() => new Fuse(tags, {
         keys: ['name'],
@@ -82,56 +56,21 @@ export const useArticleSearch = () => {
 
     // Initial Load
     useEffect(() => {
-        const loadArticles = async () => {
+        const loadEvents = async () => {
             try {
-                const items = await articlesService.listAll();
+                const items = await eventsService.listAll();
                 if (!items || items.length === 0) {
-                    setArticles([]);
+                    setEvents([]);
                     return;
                 }
-
-                const authorIds = Array.from(new Set(items.map(i => i.authorId)));
-                const { data: profiles } = await supabase
-                    .from('profiles')
-                    .select('id,name,avatar_url,bio,followers_count,articles_count')
-                    .in('id', authorIds);
-
-                const idToProfile = new Map((profiles || []).map((p: any) => [p.id, p]));
-                const mapped: Article[] = items.map(item => {
-                    const p: any = idToProfile.get(item.authorId);
-                    return {
-                        id: item.id,
-                        title: item.title,
-                        slug: item.slug,
-                        excerpt: item.excerpt,
-                        content: '',
-                        author: {
-                            id: item.authorId,
-                            name: p?.name || 'Anonymous',
-                            avatar: p?.avatar_url || null,
-                            bio: p?.bio || '',
-                            followersCount: p?.followers_count ?? 0,
-                            articlesCount: p?.articles_count ?? 0,
-                        },
-                        publishedAt: item.publishedAt || new Date().toISOString(),
-                        readingTime: 5,
-                        likes: item.likes,
-                        views: item.views,
-                        comments: Array(item.comments).fill({}),
-                        tags: item.tags || [],
-                        featured: item.featured,
-                        status: 'published',
-                        coverImage: item.coverImage || null,
-                    };
-                });
-                setArticles(mapped);
+                setEvents(items);
             } catch (error) {
-                console.error('Failed to load articles:', error);
+                console.error('Failed to load events:', error);
             } finally {
                 setIsLoading(false);
             }
         };
-        loadArticles();
+        loadEvents();
     }, []);
 
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -140,7 +79,6 @@ export const useArticleSearch = () => {
     useEffect(() => {
         if (isLoading) return;
 
-        // If no query and no tags, we don't use searchResults (handled by useMemo below)
         if (!query.trim() && selectedTags.length === 0) {
             setIsSearching(false);
             return;
@@ -149,65 +87,57 @@ export const useArticleSearch = () => {
         setIsSearching(true);
         const timeout = setTimeout(() => {
             let res: any[] = [];
-            if (searchType === 'articles') {
-                // If there's a query, use fuse. If not, start with all articles.
-                let baseArticles = query.trim()
-                    ? fuseArticles.search(query).map(r => r.item)
-                    : articles;
+            if (searchType === 'events') {
+                let baseEvents = query.trim()
+                    ? fuseEvents.search(query).map(r => r.item)
+                    : events;
 
-                // Then filter by selected tags
                 if (selectedTags.length > 0) {
-                    baseArticles = baseArticles.filter(article =>
-                        selectedTags.every(tag => article.tags.includes(tag))
+                    baseEvents = baseEvents.filter(event =>
+                        selectedTags.every(tag => event.tags?.includes(tag))
                     );
                 }
-                res = baseArticles;
-            } else if (searchType === 'authors') {
-                res = fuseAuthors.search(query).map(r => r.item);
+                res = baseEvents;
             } else if (searchType === 'tags') {
                 res = fuseTags.search(query).map(r => r.item);
             }
             setSearchResults(res);
-            setSearchResultsType(searchType); // Mark results as valid for this type
+            setSearchResultsType(searchType);
             setIsSearching(false);
         }, 300);
 
         return () => clearTimeout(timeout);
-    }, [query, searchType, articles, authors, tags, fuseArticles, fuseAuthors, fuseTags, isLoading, selectedTags]);
+    }, [query, searchType, events, tags, fuseEvents, fuseTags, isLoading, selectedTags]);
 
     // Compute Final Results
-    // This logic ensures 'results' always matches 'searchType', preventing type mismatches during transitions.
     const results = useMemo(() => {
         if (!query.trim() && selectedTags.length === 0) {
             switch (searchType) {
-                case 'authors': return authors;
                 case 'tags': return tags;
-                case 'articles': default: return articles;
+                case 'events': default: return events;
             }
         }
 
-        // If we have a query/tags, but the search results are for a different type (stale), return empty
-        // This avoids passing Article[] to a component expecting Author[]
         if (searchResultsType !== searchType) {
             return [];
         }
 
         return searchResults;
-    }, [query, searchType, articles, authors, tags, searchResults, searchResultsType, selectedTags]);
+    }, [query, searchType, events, tags, searchResults, searchResultsType, selectedTags]);
 
     // Sort Results
     const sortedResults = useMemo(() => {
-        if (searchType !== 'articles') return results;
+        if (searchType !== 'events') return results;
 
         return [...results].sort((a, b) => {
             switch (sortBy) {
                 case 'date':
-                    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-                case 'likes':
-                    return b.likes - a.likes;
+                    return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
+                case 'team_size':
+                    return (b.max_team_size || 0) - (a.max_team_size || 0);
                 default:
-                    if (query.trim()) return 0; // Use Fuse relevance
-                    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+                    if (query.trim()) return 0;
+                    return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
             }
         });
     }, [results, sortBy, searchType, query]);
@@ -220,10 +150,8 @@ export const useArticleSearch = () => {
         sortBy,
         setSortBy,
         results: sortedResults,
-        isSearching: isSearching || ((!!query.trim() || selectedTags.length > 0) && searchResultsType !== searchType), // Show loading if searching or outdated
+        isSearching: isSearching || ((!!query.trim() || selectedTags.length > 0) && searchResultsType !== searchType),
         isLoading,
-        allArticles: articles,
-        allAuthors: authors,
         allTags: tags,
         selectedTags,
         setSelectedTags

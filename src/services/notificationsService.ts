@@ -1,5 +1,5 @@
 import supabase from './supabaseClient';
-import { articlesService } from './articlesService';
+import { eventsService } from './eventsService';
 
 export interface NotificationItem {
   id: string;
@@ -28,18 +28,18 @@ export const notificationsService = {
     const notifications = await Promise.all((data || []).map(async (n: any) => {
       let link = n.action_url;
       
-      // If the link contains an article ID, convert it to a slug
+      // If the link contains an article ID, convert it to an event link
       if (link && link.includes('/article/')) {
         const articleIdMatch = link.match(/\/article\/([a-f0-9-]{36})/);
         if (articleIdMatch) {
-          const articleId = articleIdMatch[1];
+          const eventId = articleIdMatch[1];
           try {
-            const article = await articlesService.getById(articleId);
-            if (article) {
-              link = `/article/${article.slug}`;
+            const event = await eventsService.getById(eventId);
+            if (event) {
+              link = `/event/${event.id}`;
             }
           } catch (error) {
-            console.warn('Failed to convert article ID to slug:', error);
+            console.warn('Failed to convert article ID to event:', error);
             // Keep original link if conversion fails
           }
         }

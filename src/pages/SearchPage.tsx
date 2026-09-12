@@ -1,13 +1,12 @@
 import React from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, SortAsc, Calendar, Heart, MessageCircle, Clock, Eye } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Search, Filter, SortAsc } from 'lucide-react';
 import { useArticleSearch } from '../hooks/useArticleSearch';
 import MobileSearchView from '../components/search/MobileSearchView';
 import LoaderSkeleton from '../components/LoaderSkeleton';
 import TagPill from '../components/TagPill';
-import AuthorCard from '../components/AuthorCard';
+import EventCard from '../components/EventCard';
 
 const SearchPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,12 +80,12 @@ const SearchPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-white mb-2">
             {query ? `Search results for "${query}"` : 'Search'}
           </h1>
-          {/* Search Type Toggles for Desktop (Optional but useful given we have mixed results) */}
+          {/* Search Type Toggles */}
           <div className="flex gap-4 mt-4 border-b border-dark-800 pb-1">
-            {(['articles', 'authors', 'tags'] as const).map((type) => (
+            {(['events', 'tags'] as const).map((type) => (
               <button
                 key={type}
-                onClick={() => setSearchType(type)}
+                onClick={() => setSearchType(type as any)}
                 className={`pb-2 px-1 text-sm font-medium transition-colors relative ${searchType === type ? 'text-primary-500' : 'text-gray-400 hover:text-white'
                   }`}
               >
@@ -105,7 +104,7 @@ const SearchPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {searchType === 'articles' && (
+          {searchType === 'events' && (
             <aside className="lg:w-64 space-y-6">
               <div className="bg-dark-900/50 border border-dark-800 rounded-xl p-4">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
@@ -115,8 +114,8 @@ const SearchPage: React.FC = () => {
                 <div className="space-y-2">
                   {[
                     { value: 'relevance', label: 'Relevance' },
-                    { value: 'date', label: 'Most Recent' },
-                    { value: 'likes', label: 'Most Liked' }
+                    { value: 'date', label: 'Event Date' },
+                    { value: 'team_size', label: 'Team Size' }
                   ].map(option => (
                     <button
                       key={option.value}
@@ -167,99 +166,17 @@ const SearchPage: React.FC = () => {
 
           <main className="flex-1">
             {isLoading || isSearching ? (
-              <LoaderSkeleton variant={searchType === 'authors' ? 'author' : 'article'} count={3} />
+              <LoaderSkeleton variant={'article'} count={3} />
             ) : results.length > 0 ? (
-              <div className={searchType === 'authors' ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" : "space-y-6"}>
-                {searchType === 'articles' && results.map((article: any, index: number) => (
-                  <motion.article
-                    key={article.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-dark-900/50 border border-dark-800 rounded-xl overflow-hidden hover:border-primary-500/50 transition-all duration-300"
-                  >
-                    <Link to={`/article/${article.slug}`}>
-                      <div className="flex flex-col sm:flex-row min-h-0">
-                        <div className="flex-1 min-w-0 p-4 sm:p-6">
-                          <div className="flex items-center space-x-2 mb-3">
-                            {article.tags.slice(0, 3).map((tag: string) => (
-                              <TagPill
-                                key={tag}
-                                tag={tag}
-                                variant="outline"
-                                size="sm"
-                              />
-                            ))}
-                          </div>
-
-                          <h2 className="text-xl font-semibold text-white mb-2 hover:text-primary-400 transition-colors">
-                            {article.title}
-                          </h2>
-
-                          <p className="text-gray-400 mb-4 line-clamp-2">
-                            {article.excerpt}
-                          </p>
-
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                              <div className="flex items-center space-x-2">
-                                <img
-                                  src={article.author.avatar}
-                                  alt={article.author.name}
-                                  className="w-6 h-6 rounded-full"
-                                />
-                                <span className="text-sm text-gray-300">{article.author.name}</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-gray-400">
-                                <Calendar className="w-4 h-4" />
-                                <span className="text-sm">
-                                  {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true })}
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-gray-400">
-                                <Clock className="w-4 h-4" />
-                                <span className="text-sm">{article.readingTime} min read</span>
-                              </div>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-400">
-                              <div className="flex items-center space-x-1">
-                                <Eye className="w-4 h-4" />
-                                <span className="text-sm">{article.views?.toLocaleString() || 0}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Heart className="w-4 h-4" />
-                                <span className="text-sm">{article.likes}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <MessageCircle className="w-4 h-4" />
-                                <span className="text-sm">{article.comments.length}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {article.coverImage && (
-                          <div className="relative order-1 sm:order-2 w-full aspect-video sm:aspect-auto sm:w-52 sm:min-w-[180px] sm:min-h-full sm:self-stretch flex-shrink-0 overflow-hidden">
-                            <img
-                              src={article.coverImage}
-                              alt={article.title}
-                              className="absolute inset-0 w-full h-full object-cover object-center article-card-image-fade"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                  </motion.article>
-                ))}
-
-                {searchType === 'authors' && results.map((author: any, index: number) => (
+              <div className={"space-y-6"}>
+                {searchType === 'events' && results.map((event: any, index: number) => (
                   <motion.div
-                    key={author.id}
+                    key={event.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                   >
-                    <AuthorCard author={author} variant="detailed" />
+                    <EventCard event={event} />
                   </motion.div>
                 ))}
 
@@ -272,13 +189,12 @@ const SearchPage: React.FC = () => {
                         variant="outline"
                         onClick={() => {
                           setQuery(tag.name);
-                          setSearchType('articles');
+                          setSearchType('events');
                         }}
                       />
                     ))}
                   </div>
                 )}
-
               </div>
             ) : query ? (
               <motion.div
@@ -306,7 +222,7 @@ const SearchPage: React.FC = () => {
                 <Search className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold text-white mb-2">Start searching</h2>
                 <p className="text-gray-400">
-                  Enter a search term to find articles, authors, and topics.
+                  Enter a search term to find events and topics.
                 </p>
               </motion.div>
             )}

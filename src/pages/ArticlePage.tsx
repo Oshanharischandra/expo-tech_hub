@@ -18,7 +18,7 @@ import {
 import { Article } from '../types/payload';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import { articlesService } from '../services/articlesService';
+import { eventsService } from '../services/eventsService';
 import supabase from '../services/supabaseClient';
 import { commentsService } from '../services/commentsService';
 import { viewsService } from '../services/viewsService';
@@ -48,12 +48,12 @@ const ArticlePage: React.FC = () => {
       if (!slug) return;
 
       try {
-        // Try to fetch by slug first, if that fails and slug looks like a UUID, try by ID
-        let data = await articlesService.getBySlug(slug);
+        // Try to fetch by ID
+        let data: any = await eventsService.getById(slug);
 
         // If slug is actually an ID (UUID format), try fetching by ID
         if (!data && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug)) {
-          data = await articlesService.getById(slug);
+          data = await eventsService.getById(slug);
         }
 
         //console.log('📄 [ARTICLE DEBUG] Fetched article data:', { id: data?.id, views: data?.views, likes: data?.likes, ca: (data as any)?.customAuthor });
@@ -106,7 +106,7 @@ const ArticlePage: React.FC = () => {
           // If view was tracked, refetch the article to get updated view count
           if (viewTracked) {
             //console.log('📄 [ARTICLE DEBUG] View was tracked, refetching article for updated view count...');
-            const updatedData = await articlesService.getBySlug(slug);
+            const updatedData = await eventsService.getById(slug);
             if (updatedData) {
               //console.log('📄 [ARTICLE DEBUG] Updated article data:', { views: updatedData.views });
               setArticle(prev => prev ? { ...prev, views: updatedData.views } as any : null);

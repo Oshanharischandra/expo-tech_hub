@@ -24,7 +24,6 @@ import {
 import AvatarUpload from '../components/AvatarUpload';
 import { storageService } from '../services/storageService';
 import { profilesService, ProfileUpdateData } from '../services/profilesService';
-import { articlesService } from '../services/articlesService';
 import { FollowButton } from '../components/follow/FollowButton';
 import BadgeList from '../components/badges/BadgeList'; // Import BadgeList
 import MediumStyleArticleCard from '../components/MediumStyleArticleCard';
@@ -115,7 +114,12 @@ const ProfilePage: React.FC = () => {
       const fetchArticles = async () => {
         setLoadingArticles(true);
         try {
-          const fetchedArticles = await articlesService.listByAuthor(profileUser.id);
+          const { data, error } = await supabase
+            .from('events')
+            .select('*')
+            .eq('status', 'approved');
+          
+          const fetchedArticles = data || [];
 
           // Add author info to each article since listByAuthor might not return nested author object
           // but we already have profileUser

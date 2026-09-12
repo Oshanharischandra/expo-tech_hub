@@ -1,18 +1,16 @@
 import React, { useRef } from 'react';
 import { Search, Filter, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Article } from '../../types/payload';
 import TagPill from '../TagPill';
 import LoaderSkeleton from '../LoaderSkeleton';
-import ArticleCardMobile from '../ArticleCardMobile';
-import AuthorCard from '../AuthorCard';
-import type { SearchType, Tag, Author } from '../../hooks/useArticleSearch';
+import EventCardMobile from '../EventCardMobile';
+import type { SearchType, Tag } from '../../hooks/useArticleSearch';
 
 export interface MobileSearchViewProps {
     query: string;
     setQuery: (q: string) => void;
-    sortBy: 'relevance' | 'date' | 'likes';
-    setSortBy: (s: 'relevance' | 'date' | 'likes') => void;
+    sortBy: 'relevance' | 'date' | 'team_size';
+    setSortBy: (s: 'relevance' | 'date' | 'team_size') => void;
     searchType: SearchType;
     setSearchType: (t: SearchType) => void;
     results: any[];
@@ -71,7 +69,7 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
 
                 {/* Search Mode Toggles */}
                 <div className="flex p-1 bg-dark-900 rounded-lg border border-dark-800">
-                    {(['articles', 'authors', 'tags'] as const).map((type) => (
+                    {(['events', 'tags'] as const).map((type) => (
                         <button
                             key={type}
                             onClick={() => setSearchType(type)}
@@ -85,8 +83,8 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
                     ))}
                 </div>
 
-                {/* Filter Toggle (Only for Articles?) */}
-                {searchType === 'articles' && (
+                {/* Filter Toggle (Only for Events) */}
+                {searchType === 'events' && (
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
@@ -104,7 +102,7 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
 
             {/* Filter Drawer */}
             <AnimatePresence>
-                {showFilters && searchType === 'articles' && (
+                {showFilters && searchType === 'events' && (
                     <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
@@ -118,8 +116,8 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
                                 <div className="flex flex-wrap gap-2">
                                     {[
                                         { value: 'relevance', label: 'Relevance' },
-                                        { value: 'date', label: 'Newest' },
-                                        { value: 'likes', label: 'Most Liked' }
+                                        { value: 'date', label: 'Event Date' },
+                                        { value: 'team_size', label: 'Team Size' }
                                     ].map(option => (
                                         <button
                                             key={option.value}
@@ -158,7 +156,7 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
             {/* Content */}
             <div className="px-4 py-4">
                 {isLoading ? (
-                    <LoaderSkeleton variant={searchType === 'authors' ? 'author' : 'article'} count={3} />
+                    <LoaderSkeleton variant={'article'} count={3} />
                 ) : (
                     <>
                         {/* Results Count */}
@@ -170,19 +168,8 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
 
                         {results.length > 0 ? (
                             <div className="space-y-4">
-                                {searchType === 'articles' && results.map((article: Article, index: number) => (
-                                    <ArticleCardMobile key={article.id} article={article} index={index} />
-                                ))}
-
-                                {searchType === 'authors' && results.map((author: Author, index: number) => (
-                                    <motion.div
-                                        key={author.id}
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                    >
-                                        <AuthorCard author={author} variant="compact" />
-                                    </motion.div>
+                                {searchType === 'events' && results.map((event: any, index: number) => (
+                                    <EventCardMobile key={event.id} event={event} index={index} />
                                 ))}
 
                                 {searchType === 'tags' && (
@@ -194,7 +181,7 @@ const MobileSearchView: React.FC<MobileSearchViewProps> = ({
                                                 variant="outline"
                                                 onClick={() => {
                                                     setQuery(tag.name);
-                                                    setSearchType('articles');
+                                                    setSearchType('events');
                                                 }}
                                             />
                                         ))}

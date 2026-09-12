@@ -4,17 +4,16 @@ import { motion } from 'framer-motion';
 import { Rss, Filter, TrendingUp, Clock, Users, RefreshCw } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { useAuth } from '../contexts/AuthContext';
-import supabase from '../services/supabaseClient';
-import { articlesService } from '../services/articlesService';
-import ArticleCard from '../components/ArticleCard';
+import { eventsService } from '../services/eventsService';
+import EventCard from '../components/EventCard';
 import LoaderSkeleton from '../components/LoaderSkeleton';
 import MobileFeedView from '../components/MobileFeedView';
-import { Article } from '../types/payload';
+import { Event } from '../types/payload';
 
 const FeedPage: React.FC = () => {
-  const [feedArticles, setFeedArticles] = useState<Article[]>([]);
+  const [feedEvents, setFeedEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'newest' | 'likes'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'team_size'>('newest');
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const { state } = useApp();
   const { state: authState } = useAuth();
@@ -23,92 +22,45 @@ const FeedPage: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setLastUpdate(new Date());
-      // Simulate new articles appearing
       if (Math.random() > 0.8) {
-        fetchFeedArticles();
+        fetchFeedEvents();
       }
-    }, 30000); // Check every 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const fetchFeedArticles = async () => {
+  const fetchFeedEvents = async () => {
     setLoading(true);
     if (!authState.user?.id) {
-      setFeedArticles([]);
+      setFeedEvents([]);
       setLoading(false);
       return;
     }
 
-    const res = await articlesService.listFollowingFeed(authState.user.id);
-    const rows: any[] = (res.data as any) || [];
-
-    // Enrich authors from profiles
-    if (rows.length > 0) {
-      const authorIds = Array.from(new Set(rows.map(r => r.author_id)));
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id,name,avatar_url,bio')
-        .in('id', authorIds);
-      const idToProfile = new Map((profiles || []).map((p: any) => [p.id, p]));
-
-      const mapped: Article[] = rows.map((row: any) => {
-        const p: any = idToProfile.get(row.author_id);
-        return {
-          id: row.id,
-          title: row.title,
-          slug: row.slug,
-          excerpt: row.excerpt,
-          content: '',
-          author: {
-            id: row.author_id,
-            name: p?.name || 'Anonymous',
-            avatar: p?.avatar_url,
-            bio: p?.bio || '',
-            followersCount: 0,
-            articlesCount: 0,
-          },
-          publishedAt: row.published_at || new Date().toISOString(),
-          readingTime: 5,
-          likes: row.likes ?? 0,
-          views: row.views ?? 0,
-          comments: Array(row.comments ?? 0).fill({}),
-          tags: row.tags ?? [],
-          featured: !!row.featured,
-          status: 'published',
-          coverImage: row.cover_image_url,
-          customAuthor: row.custom_author,
-        };
-      });
+    try {
+      const res = await eventsService.listAll();
+      const rows: Event[] = res || [];
 
       // Sort
-      const sorted = [...mapped].sort((a, b) => {
-        if (sortBy === 'newest') return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-        return b.likes - a.likes;
+      const sorted = [...rows].sort((a, b) => {
+        if (sortBy === 'newest') return new Date(b.event_date).getTime() - new Date(a.event_date).getTime();
+        return (b.max_team_size || 0) - (a.max_team_size || 0);
       });
-      setFeedArticles(sorted);
-    } else {
-      setFeedArticles([]);
+      setFeedEvents(sorted);
+    } catch (e) {
+      setFeedEvents([]);
     }
     setLoading(false);
   };
 
   useEffect(() => {
-    fetchFeedArticles();
+    fetchFeedEvents();
   }, [authState.user?.id, sortBy]);
 
-  // Refetch on follow/unfollow across app
-  useEffect(() => {
-    const handler = () => fetchFeedArticles();
-    window.addEventListener('follow:changed', handler as any);
-    return () => window.removeEventListener('follow:changed', handler as any);
-  }, []);
-
   const handleRefresh = () => {
-    fetchFeedArticles();
+    fetchFeedEvents();
   };
-
-
 
   if (!authState.isAuthenticated) {
     return (
@@ -117,7 +69,7 @@ const FeedPage: React.FC = () => {
           <Rss className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Sign in to see your feed</h1>
           <p className="text-gray-400 mb-6">
-            Follow authors and topics to create a personalized reading experience.
+            Follow topics to create a personalized reading experience.
           </p>
           <Link
             to="/login"
@@ -134,21 +86,19 @@ const FeedPage: React.FC = () => {
     <div className="min-h-screen bg-dark-950">
       {/* Mobile View */}
       <MobileFeedView
-        articles={feedArticles}
+        events={feedEvents}
         loading={loading}
         onRefresh={handleRefresh}
       />
 
       {/* Desktop View */}
       <div className="hidden md:block max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Breadcrumb */}
         <nav className="flex items-center space-x-2 text-sm text-gray-400 mb-6">
           <Link to="/" className="hover:text-white transition-colors">Home</Link>
           <span>/</span>
           <span className="text-white">My Feed</span>
         </nav>
 
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 flex items-center space-x-3">
@@ -156,7 +106,7 @@ const FeedPage: React.FC = () => {
               <span>My Feed</span>
             </h1>
             <p className="text-gray-400 text-sm sm:text-base">
-              Latest articles from authors you follow
+              Latest events from topics you follow
             </p>
           </div>
           <button
@@ -169,7 +119,6 @@ const FeedPage: React.FC = () => {
           </button>
         </div>
 
-        {/* Controls */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <div className="flex items-center space-x-2">
@@ -188,14 +137,14 @@ const FeedPage: React.FC = () => {
                 <span>Newest</span>
               </button>
               <button
-                onClick={() => setSortBy('likes')}
-                className={`flex items-center space-x-1 px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1 rounded-lg text-sm transition-colors ${sortBy === 'likes'
+                onClick={() => setSortBy('team_size')}
+                className={`flex items-center space-x-1 px-3 py-2 min-h-[44px] sm:min-h-0 sm:py-1 rounded-lg text-sm transition-colors ${sortBy === 'team_size'
                   ? 'bg-primary-900/30 text-primary-300 border border-primary-500/50'
                   : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <TrendingUp className="w-3 h-3" />
-                <span>Most Liked</span>
+                <span>Team Size</span>
               </button>
             </div>
           </div>
@@ -204,40 +153,21 @@ const FeedPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Feed Content */}
         {loading ? (
           <LoaderSkeleton variant="article" count={3} />
-        ) : feedArticles.length > 0 ? (
+        ) : feedEvents.length > 0 ? (
           <div className="space-y-6">
-            {feedArticles.map((article, index) => (
+            {feedEvents.map((event, index) => (
               <motion.div
-                key={article.id}
+                key={event.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <ArticleCard article={article} />
+                <EventCard event={event} />
               </motion.div>
             ))}
           </div>
-        ) : feedArticles.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-12"
-          >
-            <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Start following authors</h2>
-            <p className="text-gray-400 mb-6">
-              Follow authors to see their latest articles in your personalized feed.
-            </p>
-            <Link
-              to="/explore"
-              className="inline-flex items-center space-x-2 bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              <span>Discover Authors</span>
-            </Link>
-          </motion.div>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -245,28 +175,12 @@ const FeedPage: React.FC = () => {
             className="text-center py-12"
           >
             <Rss className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">No new articles</h2>
+            <h2 className="text-2xl font-bold text-white mb-2">No new events</h2>
             <p className="text-gray-400 mb-6">
-              The authors you follow haven't published any new articles yet. Check back later!
+              There are no new events yet. Check back later!
             </p>
-            <div className="flex items-center justify-center space-x-4">
-              <button
-                onClick={handleRefresh}
-                className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Refresh Feed</span>
-              </button>
-              <Link
-                to="/explore"
-                className="flex items-center space-x-2 bg-dark-800 text-gray-300 px-4 py-2 rounded-lg hover:bg-dark-700 transition-colors"
-              >
-                <span>Explore More</span>
-              </Link>
-            </div>
           </motion.div>
         )}
-
       </div>
     </div>
   );
