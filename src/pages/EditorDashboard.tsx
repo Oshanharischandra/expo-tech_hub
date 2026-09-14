@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { editorService } from '../services/editorService';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '../hooks/useToast';
+import supabase from '../services/supabaseClient';
 
 const EditorDashboard: React.FC = () => {
   const { state: authState } = useAuth();
@@ -11,13 +12,47 @@ const EditorDashboard: React.FC = () => {
   const [pendingSubmissions, setPendingSubmissions] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [actionEventId, setActionEventId] = useState<string | null>(null);
-
-  const isOCMember = authState.user?.role === 'admin' || authState.user?.role === 'co-admin';
+  const [confirmingAction, setConfirmingAction] = useState<{ eventId: string, type: 'approve' | 'reject' } | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOCMember) return;
-    loadDashboardData();
-  }, [isOCMember]);
+    const checkAccess = async () => {
+      setIsAuthLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log("Debug - User ID:", undefined, "Role:", undefined, "Error:", "No user found");
+          setIsAuthLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        console.log("Debug - User ID:", user?.id, "Role:", data?.role, "Error:", error);
+        
+        if (error) throw error;
+        setRole(data?.role || null);
+        
+        if (data?.role === 'admin' || data?.role === 'co-admin') {
+          loadDashboardData();
+        }
+      } catch (e: any) {
+        setAuthError(e.message || 'Authentication error');
+        console.error('Access check failed:', e);
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    checkAccess();
+  }, []);
 
   const loadDashboardData = async () => {
     setLoading(true);
@@ -33,48 +68,55 @@ const EditorDashboard: React.FC = () => {
     }
   };
 
-  const handleApproveEvent = async (eventId: string) => {
+  const initiateApprove = (eventId: string) => setConfirmingAction({ eventId, type: 'approve' });
+  const initiateReject = (eventId: string) => setConfirmingAction({ eventId, type: 'reject' });
+  const cancelConfirm = () => setConfirmingAction(null);
+
+  const confirmAction = async () => {
+    if (!confirmingAction) return;
+    const { eventId, type } = confirmingAction;
+    
     if (actionEventId) return;
     setActionEventId(eventId);
+    
     try {
-      await editorService.approveEvent(eventId);
-      setPendingSubmissions(prev => prev.filter(event => event.id !== eventId));
-      showSuccess('Event approved successfully');
+      if (type === 'approve') {
+        await editorService.approveEvent(eventId);
+        setPendingSubmissions(prev => prev.filter(event => event.id !== eventId));
+        showSuccess('Event approved successfully');
+      } else {
+        const reason = prompt('Please provide a reason for rejection (optional):');
+        if (reason === null) {
+          setActionEventId(null);
+          return;
+        }
+        await editorService.rejectEvent(eventId, reason || undefined);
+        setPendingSubmissions(prev => prev.filter(event => event.id !== eventId));
+        showSuccess('Event rejected successfully');
+      }
     } catch (e) {
-      showError('Failed to approve event');
+      showError(`Failed to ${type} event`);
     } finally {
       setActionEventId(null);
+      setConfirmingAction(null);
     }
   };
 
-  const handleRejectEvent = async (eventId: string) => {
-    if (actionEventId) return;
-    const reason = prompt('Please provide a reason for rejection (optional):');
-    if (reason === null) return; // User cancelled prompt
-    setActionEventId(eventId);
-    try {
-      await editorService.rejectEvent(eventId, reason || undefined);
-      setPendingSubmissions(prev => prev.filter(event => event.id !== eventId));
-      showSuccess('Event rejected successfully');
-    } catch (e) {
-      showError('Failed to reject event');
-    } finally {
-      setActionEventId(null);
-    }
-  };
-
-  if (!authState.isAuthenticated) {
+  if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="text-center text-gray-400">Sign in as an admin or co-admin to continue.</div>
+      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center space-y-4">
+        <div className="text-gray-400 font-medium">Authenticating OC credentials...</div>
       </div>
     );
   }
 
-  if (!isOCMember) {
+  if (authError || (role !== 'admin' && role !== 'co-admin')) {
     return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center">
-        <div className="text-center text-gray-400">You do not have access to the OC Review Portal.</div>
+      <div className="min-h-screen bg-dark-950 flex flex-col items-center justify-center space-y-2 p-4">
+        <div className="text-red-400 font-bold text-lg mb-2">Access Denied</div>
+        <div className="text-gray-400 text-center text-sm max-w-md">
+          {authError ? `Error: ${authError}` : 'You do not have permission to view the OC Review Portal. This area is restricted to admin users only.'}
+        </div>
       </div>
     );
   }
@@ -109,7 +151,7 @@ const EditorDashboard: React.FC = () => {
                 <div className="flex flex-col mb-4">
                   <h3 className="font-semibold text-white mb-1">{event.title}</h3>
                   <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <span className="font-medium text-gray-300">{event.submitter.name}</span>
+                    <span className="font-medium text-gray-300">{event.profiles?.full_name || event.profiles?.name || 'Anonymous User'}</span>
                     <span>•</span>
                     <span>{formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}</span>
                   </div>
@@ -118,13 +160,31 @@ const EditorDashboard: React.FC = () => {
                     <p><span className="font-bold text-gray-400 uppercase tracking-widest w-12 inline-block">VENUE</span> {event.venue}</p>
                   </div>
                 </div>
-                <div className="flex justify-between gap-2 border-t border-dark-800 pt-3">
-                  <button onClick={() => handleApproveEvent(event.id)} disabled={actionEventId === event.id} className="flex-1 py-2 bg-green-900/20 border border-green-900/30 text-green-400 hover:bg-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
-                    {actionEventId === event.id ? 'PROCESSING...' : 'APPROVE EVENT'}
-                  </button>
-                  <button onClick={() => handleRejectEvent(event.id)} disabled={actionEventId === event.id} className="flex-1 py-2 bg-red-900/20 border border-red-900/30 text-red-400 hover:bg-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
-                    {actionEventId === event.id ? 'PROCESSING...' : 'REJECT'}
-                  </button>
+                <div className="flex flex-col gap-2 border-t border-dark-800 pt-3">
+                  {confirmingAction?.eventId === event.id ? (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm text-center text-gray-300 mb-1">
+                        {confirmingAction.type === 'approve' ? 'Confirm Approval?' : 'Confirm Rejection?'}
+                      </p>
+                      <div className="flex gap-2">
+                        <button onClick={confirmAction} disabled={actionEventId === event.id} className="flex-1 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
+                          {actionEventId === event.id ? 'PROCESSING...' : 'YES, CONFIRM'}
+                        </button>
+                        <button onClick={cancelConfirm} disabled={actionEventId === event.id} className="flex-1 py-2 bg-dark-800 hover:bg-dark-700 text-gray-300 rounded-lg text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed">
+                          CANCEL
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between gap-2">
+                      <button onClick={() => initiateApprove(event.id)} className="flex-1 py-2 bg-green-900/20 border border-green-900/30 text-green-400 hover:bg-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
+                        APPROVE EVENT
+                      </button>
+                      <button onClick={() => initiateReject(event.id)} className="flex-1 py-2 bg-red-900/20 border border-red-900/30 text-red-400 hover:bg-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
+                        REJECT
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -181,29 +241,51 @@ const EditorDashboard: React.FC = () => {
                       </td>
                       <td className="p-5">
                         <span className="inline-block px-3 py-1 bg-dark-900 border border-dark-700 rounded-lg text-sm text-gray-300 font-medium">
-                          {event.submitter.name}
+                          {event.profiles?.full_name || event.profiles?.name || 'Anonymous User'}
                         </span>
                       </td>
                       <td className="p-5 text-gray-400 text-sm">
                         {formatDistanceToNow(new Date(event.created_at), { addSuffix: true })}
                       </td>
                       <td className="p-5 text-right">
-                        <div className="flex justify-end gap-3">
-                          <button
-                            onClick={() => handleApproveEvent(event.id)}
-                            disabled={actionEventId === event.id}
-                            className="px-4 py-2 bg-green-900/20 text-green-400 border border-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {actionEventId === event.id ? 'PROCESSING...' : 'APPROVE EVENT'}
-                          </button>
-                          <button
-                            onClick={() => handleRejectEvent(event.id)}
-                            disabled={actionEventId === event.id}
-                            className="px-4 py-2 bg-red-900/20 text-red-400 border border-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-900/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {actionEventId === event.id ? 'PROCESSING...' : 'REJECT'}
-                          </button>
-                        </div>
+                        {confirmingAction?.eventId === event.id ? (
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-xs text-gray-300 uppercase tracking-wider font-bold">
+                              {confirmingAction.type === 'approve' ? 'Confirm Approval?' : 'Confirm Rejection?'}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={confirmAction}
+                                disabled={actionEventId === event.id}
+                                className="px-4 py-2 bg-primary-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {actionEventId === event.id ? 'PROCESSING...' : 'YES, CONFIRM'}
+                              </button>
+                              <button
+                                onClick={cancelConfirm}
+                                disabled={actionEventId === event.id}
+                                className="px-4 py-2 bg-dark-800 text-gray-300 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-dark-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                CANCEL
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex justify-end gap-3">
+                            <button
+                              onClick={() => initiateApprove(event.id)}
+                              className="px-4 py-2 bg-green-900/20 text-green-400 border border-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-900/40 transition-colors"
+                            >
+                              APPROVE EVENT
+                            </button>
+                            <button
+                              onClick={() => initiateReject(event.id)}
+                              className="px-4 py-2 bg-red-900/20 text-red-400 border border-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-900/40 transition-colors"
+                            >
+                              REJECT
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -211,7 +293,7 @@ const EditorDashboard: React.FC = () => {
                     <tr>
                       <td colSpan={4} className="p-16 text-center text-gray-500">
                         <div className="flex justify-center mb-4">
-                          <span className="text-4xl">📋</span>
+                          <span className="text-2xl font-bold">[ NO PENDING EVENTS ]</span>
                         </div>
                         <p className="text-lg font-medium text-gray-400 mb-1">All Caught Up</p>
                         <p className="text-sm">No pending events require review at this time.</p>

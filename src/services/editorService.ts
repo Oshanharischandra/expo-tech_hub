@@ -9,37 +9,16 @@ export const editorService = {
       const { data: events, error: fetchError } = await supabase
         .from('events')
         .select(`
-          id,
-          title,
-          description,
-          event_date,
-          venue,
-          max_team_size,
-          tags,
-          status,
-          created_at,
-          submitter_id
+          *,
+          profiles (
+            full_name
+          )
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-
-      const submitterIds = events?.map(e => e.submitter_id) || [];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .in('id', submitterIds);
-
-      const profileMap = new Map();
-      profiles?.forEach(profile => {
-        profileMap.set(profile.id, profile);
-      });
-
-      return events?.map(event => ({
-        ...event,
-        submitter: profileMap.get(event.submitter_id) || { name: 'Unknown' }
-      })) || [];
+      return events || [];
     });
 
     if (error) throw error;

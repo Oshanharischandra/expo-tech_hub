@@ -26,6 +26,7 @@ const Header: React.FC = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { state, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,9 +61,12 @@ const Header: React.FC = () => {
   useEffect(() => {
     if (!state.isAuthenticated || !state.user?.id) {
       setUnreadCount(0);
+      setUserRole(null);
       return;
     }
+    
     let cancelled = false;
+    
     const loadUnread = async () => {
       try {
         const { count } = await supabase
@@ -75,7 +79,22 @@ const Header: React.FC = () => {
         if (!cancelled) setUnreadCount(0);
       }
     };
+    
+    const loadRole = async () => {
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', state.user!.id)
+          .single();
+        if (!cancelled && data) setUserRole(data.role);
+      } catch (e) {
+        console.error('Failed to load role', e);
+      }
+    };
+
     loadUnread();
+    loadRole();
 
     // Optional: listen for global refresh events
     const handler = () => loadUnread();
@@ -266,7 +285,6 @@ const Header: React.FC = () => {
                   {navLink('/', 'Home')}
                   {navLink('/feed', 'Feed')}
                   {navLink('/explore', 'Explore')}
-                  {state.isAuthenticated && (state.user?.role === 'editor' || state.user?.role === 'admin') && navLink('/editor', 'Editor')}
                 </>
               );
             })()}
@@ -348,6 +366,16 @@ const Header: React.FC = () => {
                         <User className="w-4 h-4" />
                         <span>Profile</span>
                       </Link>
+                      {(userRole === 'admin' || userRole === 'co-admin') && (
+                        <Link
+                          to="/editor"
+                          className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-800 transition-colors"
+                          onClick={() => setIsProfileOpen(false)}
+                        >
+                          <span className="w-4 h-4"></span>
+                          <span>Review Events</span>
+                        </Link>
+                      )}
                       <button
                         onClick={(e) => {
                           e.preventDefault();
@@ -457,7 +485,6 @@ const Header: React.FC = () => {
                           {navLink('/', 'Home')}
                           {navLink('/feed', 'Feed')}
                           {navLink('/explore', 'Explore')}
-                          {state.isAuthenticated && (state.user?.role === 'editor' || state.user?.role === 'admin') && navLink('/editor', 'Editor')}
                         </>
                       );
                     })()}
@@ -481,6 +508,16 @@ const Header: React.FC = () => {
                           <User className="w-4 h-4" />
                           <span>Profile</span>
                         </Link>
+                        {(userRole === 'admin' || userRole === 'co-admin') && (
+                          <Link
+                            to="/editor"
+                            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-dark-800 transition-colors"
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            <span className="w-4 h-4"></span>
+                            <span>Review Events</span>
+                          </Link>
+                        )}
                         <button
                           onClick={(e) => {
                             e.preventDefault();
