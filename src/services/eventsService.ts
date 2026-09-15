@@ -3,12 +3,19 @@ import { safeQuery } from './supabaseUtils';
 import { Event } from '../types/payload';
 
 export const eventsService = {
-  async listFeatured(): Promise<Event[]> {
+  async listFeatured(category?: string): Promise<Event[]> {
     const { data, error } = await safeQuery('events/listFeatured', async () => {
-      const res = await supabase
+      let query = supabase
         .from('events')
         .select(`*`)
         .eq('status', 'approved')
+        .neq('is_archived', true);
+        
+      if (category && category !== 'All Events') {
+        query = query.eq('category', category);
+      }
+        
+      const res = await query
         .order('event_date', { ascending: true })
         .limit(12);
       if (res.error) throw res.error;
@@ -18,15 +25,22 @@ export const eventsService = {
     return (data || []) as Event[];
   },
 
-  async listAll(page = 1, limit = 50): Promise<Event[]> {
+  async listAll(page = 1, limit = 50, category?: string): Promise<Event[]> {
     const { data, error } = await safeQuery('events/listAll', async () => {
       const from = (page - 1) * limit;
       const to = from + limit - 1;
 
-      const res = await supabase
+      let query = supabase
         .from('events')
         .select(`*`)
         .eq('status', 'approved')
+        .neq('is_archived', true);
+        
+      if (category && category !== 'All Events') {
+        query = query.eq('category', category);
+      }
+
+      const res = await query
         .order('event_date', { ascending: true })
         .range(from, to);
       if (res.error) throw res.error;

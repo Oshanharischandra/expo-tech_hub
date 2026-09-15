@@ -59,5 +59,45 @@ export const editorService = {
     });
 
     if (error) throw error;
+  },
+
+  // Get all non-archived events
+  async getAllEvents(): Promise<any[]> {
+    const { data, error } = await safeQuery('editor/allEvents', async () => {
+      const { data: events, error: fetchError } = await supabase
+        .from('events')
+        .select(`
+          *,
+          profiles (
+            full_name
+          )
+        `)
+        .neq('is_archived', true)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) throw fetchError;
+      return events || [];
+    });
+
+    if (error) throw error;
+    return data as any[];
+  },
+
+  // Archive an event
+  async archiveEvent(eventId: string): Promise<void> {
+    const { error } = await safeQuery('editor/archiveEvent', async () => {
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({ 
+          is_archived: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+
+      if (updateError) throw updateError;
+      return true;
+    });
+
+    if (error) throw error;
   }
 };

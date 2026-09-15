@@ -39,7 +39,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, featured = false }) => {
             ) : (
               <div className="w-full h-full absolute inset-0 bg-gradient-to-br from-primary-900/40 to-dark-950" />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-dark-950 via-dark-950/90 to-transparent" />
           </Link>
           <div className={`${hasValidCover ? 'absolute bottom-0 left-0 right-0' : 'relative'} p-6 pointer-events-none`}>
             <div className="flex items-center gap-2 overflow-x-auto pb-3 hide-scrollbar pointer-events-auto">

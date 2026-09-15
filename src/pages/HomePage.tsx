@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import EventCard from '../components/EventCard';
 import EventCardMobile from '../components/EventCardMobile';
-import Sidebar from '../components/Sidebar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useApp } from '../contexts/AppContext';
 import { eventsService } from '../services/eventsService';
@@ -20,15 +19,20 @@ const HomePage: React.FC = () => {
   const [featuredItems, setFeaturedItems] = React.useState<Event[]>([]);
   const [regularItems, setRegularItems] = React.useState<Event[]>([]);
 
+  const [category, setCategory] = React.useState('All Events');
+
   // Initial load
   useEffect(() => {
     const fetchInitialEvents = async () => {
+      setPage(1);
+      setHasMore(true);
+      setLoadingMore(false);
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
-        const featured = await eventsService.listFeatured();
+        const featured = await eventsService.listFeatured(category);
         setFeaturedItems(featured);
 
-        const items = await eventsService.listAll(1, 10);
+        const items = await eventsService.listAll(1, 10, category);
         setRegularItems(items);
         setHasMore(items.length === 10);
       } catch (error) {
@@ -40,7 +44,7 @@ const HomePage: React.FC = () => {
     };
 
     fetchInitialEvents();
-  }, [dispatch]);
+  }, [dispatch, category]);
 
   // Load more events
   const loadMoreEvents = React.useCallback(async () => {
@@ -49,7 +53,7 @@ const HomePage: React.FC = () => {
     setLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const items = await eventsService.listAll(nextPage, 10);
+      const items = await eventsService.listAll(nextPage, 10, category);
 
       if (!items || items.length === 0) {
         setHasMore(false);
@@ -65,7 +69,7 @@ const HomePage: React.FC = () => {
     } finally {
       setLoadingMore(false);
     }
-  }, [page, hasMore, loadingMore]);
+  }, [page, hasMore, loadingMore, category]);
 
   // Setup intersection observer
   useEffect(() => {
@@ -113,6 +117,25 @@ const HomePage: React.FC = () => {
           <p className="text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
             Discover and participate in upcoming tech events, hackathons, and workshops.
           </p>
+        </div>
+
+        {/* Mobile Horizontal Filter Bar */}
+        <div className="overflow-x-auto hide-scrollbar border-b border-dark-800 bg-dark-950 sticky top-16 z-40">
+          <div className="flex px-4 py-3 gap-2 min-w-max">
+            {["All Events", "Workshops", "Competitions", "Meetups"].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  category === cat
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-dark-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="sticky top-16 z-30 bg-dark-950 px-4 py-3 border-b border-dark-800">
@@ -184,6 +207,25 @@ const HomePage: React.FC = () => {
               </div>
             </motion.div>
 
+            {/* Desktop Horizontal Filter Bar */}
+            <div className="flex justify-center mb-10">
+              <div className="flex flex-wrap items-center justify-center gap-2 bg-dark-900/50 p-1.5 rounded-full border border-dark-800">
+                {["All Events", "Workshops", "Competitions", "Meetups"].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setCategory(cat)}
+                    className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                      category === cat
+                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20'
+                        : 'text-gray-400 hover:text-white hover:bg-dark-800'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {featuredEvents.length > 0 && (
               <section className="mb-12">
                 <h2 className="text-2xl font-bold text-white mb-6">Featured Events</h2>
@@ -220,8 +262,6 @@ const HomePage: React.FC = () => {
               )}
             </section>
           </main>
-
-          <Sidebar />
         </div>
       </div>
     </div>

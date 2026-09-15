@@ -1,4 +1,4 @@
-# Edify
+# TechHub
 
 A community-driven platform for discovering and sharing stories that inspire. Explore ideas across technology, culture, and more.
 

@@ -248,15 +248,15 @@ const Header: React.FC = () => {
                     <div className="md:hidden text-xl font-bold text-white">{getPageTitle()}</div>
                     <img
                       src="/logo.png"
-                      alt="edify.exposition.lk logo"
-                      className="hidden md:block w-36 h-12 sm:w-48 sm:h-16 object-contain max-w-[180px] sm:max-w-none"
+                      alt="TechHub logo"
+                      className="hidden md:block w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[2.5] origin-left ml-8 mr-16 md:mr-32"
                     />
                   </>
                 ) : (
                   <img
                     src="/logo.png"
-                    alt="edify.exposition.lk logo"
-                    className="w-36 h-12 sm:w-48 sm:h-16 object-contain max-w-[180px] sm:max-w-none"
+                    alt="TechHub logo"
+                    className="w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[2.5] origin-left ml-8 mr-16 md:mr-32"
                   />
                 )}
               </Link>

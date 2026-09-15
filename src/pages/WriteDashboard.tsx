@@ -16,6 +16,8 @@ const WriteDashboard: React.FC = () => {
   const [currentEvent, setCurrentEvent] = useState<Partial<Event> | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [customTagInput, setCustomTagInput] = useState('');
   
   const defaultTags = ['Robotics', 'IoT', 'Hackathon', 'AI', 'UI/UX'];
@@ -56,22 +58,83 @@ const WriteDashboard: React.FC = () => {
     setActiveView('form');
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleEventDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const dateStr = e.target.value;
+    if (!dateStr) {
+      setCurrentEvent(prev => prev ? { ...prev, event_date: undefined } : null);
+      return;
+    }
+    
+    const isoStr = new Date(dateStr).toISOString();
+    setCurrentEvent(prev => {
+      if (!prev) return prev;
+      const newEvent = { ...prev, event_date: isoStr };
+      if (!prev.important_dates || prev.important_dates.length === 0) {
+        newEvent.important_dates = [{
+          label: 'Event Date',
+          date_value: isoStr,
+          is_primary: true
+        }];
+      }
+      return newEvent;
+    });
+  };
 
+  const processImageUpload = async (file: File) => {
     setUploadingImage(true);
+    setUploadComplete(false);
     try {
       const result = await storageService.uploadImage(file, 'events');
       setCurrentEvent(prev => prev ? { ...prev, cover_image: result.url } : null);
+      setUploadComplete(true);
       showSuccess('Cover image uploaded successfully');
+      setTimeout(() => setUploadComplete(false), 3000);
     } catch (error: any) {
       console.error('Image upload failed:', error);
       showError(error.message || 'Failed to upload image');
     } finally {
       setUploadingImage(false);
-      e.target.value = '';
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processImageUpload(file);
+    e.target.value = '';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      await processImageUpload(file);
+    } else if (file) {
+      showError('Please upload a valid image file');
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!currentEvent?.cover_image) return;
+    try {
+      const urlParts = currentEvent.cover_image.split('/events/');
+      if (urlParts.length > 1) {
+        await storageService.deleteImage(urlParts[1]);
+      }
+    } catch (e) {
+      console.error('Failed to delete image from storage:', e);
+    }
+    setCurrentEvent(prev => prev ? { ...prev, cover_image: undefined } : null);
   };
 
   const toggleTag = (tag: string) => {
@@ -272,26 +335,62 @@ const WriteDashboard: React.FC = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-300 mb-2">Event Flyer / Cover Image</label>
                 {currentEvent.cover_image ? (
-                  <div className="relative w-full h-48 bg-dark-950 rounded-lg overflow-hidden border border-dark-700 mb-2">
+                  <div className="relative w-full h-64 bg-dark-950 rounded-lg overflow-hidden border border-dark-700 mb-2 group">
                     <img src={currentEvent.cover_image} alt="Cover" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-dark-950/20" />
+                    
+                    {uploadComplete && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="bg-dark-900/90 text-green-400 font-bold px-4 py-2 rounded-lg border border-green-500/30">
+                          [ Upload Complete ]
+                        </span>
+                      </div>
+                    )}
+
                     <button 
                       type="button"
-                      onClick={() => setCurrentEvent({ ...currentEvent, cover_image: undefined })}
-                      className="absolute top-2 right-2 bg-dark-900/80 text-white px-2 py-1 rounded text-xs font-bold"
+                      onClick={handleRemoveImage}
+                      className="absolute top-4 right-4 bg-dark-900 text-red-400 border border-red-500/30 w-8 h-8 flex items-center justify-center rounded-lg font-mono text-xl font-bold hover:bg-red-900/50 hover:text-red-300 transition-colors opacity-0 group-hover:opacity-100 shadow-lg"
+                      title="Remove Image"
                     >
-                      Remove
+                      x
                     </button>
                   </div>
                 ) : (
-                  <div className="w-full">
+                  <div 
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`w-full h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center transition-colors relative ${
+                      isDragging 
+                        ? 'border-primary-500 bg-primary-900/10' 
+                        : uploadingImage 
+                          ? 'border-dark-700 bg-dark-900'
+                          : 'border-dark-700 bg-dark-950 hover:border-gray-500 hover:bg-dark-900'
+                    }`}
+                  >
                     <input 
                       type="file" 
                       accept="image/*" 
                       onChange={handleImageUpload} 
                       disabled={uploadingImage}
-                      className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-700 disabled:opacity-50"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     />
-                    {uploadingImage && <p className="text-xs text-primary-400 mt-2">Uploading...</p>}
+                    
+                    {uploadingImage ? (
+                      <div className="text-primary-400 font-bold animate-pulse">
+                        [ Uploading image... ]
+                      </div>
+                    ) : isDragging ? (
+                      <div className="text-primary-400 font-bold">
+                        [ Drop image here ]
+                      </div>
+                    ) : (
+                      <div className="text-gray-400 font-bold text-center pointer-events-none">
+                        <span className="text-white block mb-2 text-base">[ Click to Browse or Drag & Drop ]</span>
+                        <span className="text-xs">Supports JPG, PNG, WEBP</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -330,7 +429,7 @@ const WriteDashboard: React.FC = () => {
                     type="datetime-local"
                     required
                     value={currentEvent.event_date ? new Date(currentEvent.event_date).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setCurrentEvent({ ...currentEvent, event_date: new Date(e.target.value).toISOString() })}
+                    onChange={handleEventDateChange}
                     className="w-full bg-dark-950 border border-dark-700 rounded-lg px-4 py-3 text-white focus:border-primary-500 outline-none"
                   />
                 </div>
