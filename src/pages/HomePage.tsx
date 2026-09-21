@@ -12,15 +12,12 @@ import {
   ShieldCheck,
   ArrowRight,
   Calendar,
-  MapPin,
-  Clock
+  MapPin
 } from 'lucide-react';
 import ArticleCard from '../components/ArticleCard';
 import Sidebar from '../components/Sidebar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ArticleCardMobile from '../components/ArticleCardMobile';
-import EventCard from '../components/EventCard';
-import EventCardMobile from '../components/EventCardMobile';
 import { EventDetailView } from './EventDetailView';
 import { useApp } from '../contexts/AppContext';
 import { articlesService } from '../services/articlesService';
@@ -49,13 +46,13 @@ const HomePage: React.FC = () => {
 
   const [featuredItems, setFeaturedItems] = useState<Article[]>([]);
 
-  // Events & Cart State
+  // Single featured event (clean & minimalist)
+  const featuredEvent = mockEvents[0];
   const [selectedEvent, setSelectedEvent] = useState<TechEvent | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([
     {
-      event: mockEvents[0],
+      event: featuredEvent,
       tier: 'executive',
       price: 499,
       quantity: 1,
@@ -231,7 +228,6 @@ const HomePage: React.FC = () => {
         };
       });
 
-      // Filter out duplicates based on ID
       dispatch({
         type: 'SET_ARTICLES',
         payload: [...state.articles, ...mapped].filter((v, i, a) => a.findIndex(t => t.id === v.id) === i)
@@ -314,10 +310,6 @@ const HomePage: React.FC = () => {
 
   const totalCartPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const filteredEvents = selectedCategory === 'all'
-    ? mockEvents
-    : mockEvents.filter(e => e.category.toLowerCase().includes(selectedCategory.toLowerCase()));
 
   const baseFeatured = featuredItems.length > 0 
     ? featuredItems 
@@ -452,7 +444,7 @@ const HomePage: React.FC = () => {
                         <Ticket className="w-12 h-12 text-white/20 mx-auto" />
                         <h4 className="text-white font-bold text-base">Your pass cart is empty</h4>
                         <p className="text-xs text-white/50 max-w-xs mx-auto">
-                          Select an upcoming conclave below to reserve your in-person or virtual executive access pass.
+                          Select the upcoming conclave below to reserve your in-person or virtual executive access pass.
                         </p>
                       </div>
                     ) : (
@@ -569,6 +561,22 @@ const HomePage: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Floating Pass Cart Button */}
+      {cart.length > 0 && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          onClick={() => setIsCartOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 bg-[#141414] hover:bg-[#1a1a1a] text-white border border-[#ac834e]/70 rounded-2xl shadow-gold-glow-lg transition-all active:scale-95 group"
+        >
+          <ShoppingCart className="w-4 h-4 text-[#ac834e] group-hover:scale-110 transition-transform" />
+          <span className="text-xs font-bold uppercase tracking-wider">Passes ({totalCartCount})</span>
+          <span className="text-xs font-mono font-bold text-[#ac834e] bg-[#ac834e]/15 px-2 py-0.5 rounded-md border border-[#ac834e]/30">
+            ${totalCartPrice}
+          </span>
+        </motion.button>
+      )}
+
       {/* ============================================================ */}
       {/* Mobile View                                                  */}
       {/* ============================================================ */}
@@ -587,38 +595,58 @@ const HomePage: React.FC = () => {
           </p>
         </div>
 
-        {/* Mobile Upcoming Events Section with Cart Trigger */}
-        <div className="px-4 py-6 border-b border-dark-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#ac834e]" />
-              <span>Upcoming Conclaves</span>
-            </h2>
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141414] border border-[#ac834e]/40 text-[#ac834e] text-xs font-bold"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span>Passes ({totalCartCount})</span>
-            </button>
-          </div>
+        {/* Minimalistic Single Upcoming Event Card on Mobile */}
+        <div className="px-4 py-5 border-b border-dark-800">
+          <GlowCard
+            customSize
+            glowColor="gold"
+            className="bg-[#121212] border border-[#ac834e]/30 rounded-2xl p-4 flex flex-col gap-3 shadow-gold-glow-sm"
+          >
+            <div className="flex items-center justify-between text-xs">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-semibold text-[10px] uppercase tracking-wider bg-[#ac834e]/15 text-[#ac834e] border border-[#ac834e]/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#ac834e] animate-pulse" />
+                Upcoming Event
+              </span>
+              <span className="text-[#ac834e] font-mono text-xs font-semibold">
+                {featuredEvent.date}
+              </span>
+            </div>
 
-          <div className="space-y-4">
-            {mockEvents.slice(0, 3).map((event) => (
-              <div key={event.id} className="relative">
-                <EventCardMobile event={event} onSelectEvent={(ev) => setSelectedEvent(ev)} />
-                <div className="mt-2 flex justify-end">
-                  <button
-                    onClick={() => handleAddToCart(event)}
-                    className="px-3 py-1.5 rounded-lg bg-[#ac834e] text-[#0e0e0e] text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5"
-                  >
-                    <ShoppingCart className="w-3 h-3" />
-                    <span>Reserve Pass</span>
-                  </button>
-                </div>
+            <h3
+              onClick={() => setSelectedEvent(featuredEvent)}
+              className="text-lg font-serif font-bold text-white leading-snug cursor-pointer"
+            >
+              {featuredEvent.title}
+            </h3>
+
+            <p className="text-xs text-white/70 line-clamp-2 font-light leading-relaxed">
+              {featuredEvent.tagline}
+            </p>
+
+            <div className="flex items-center justify-between pt-2 border-t border-[#ac834e]/20 text-xs">
+              <div className="flex items-center gap-1.5 text-white/60 truncate max-w-[150px]">
+                <MapPin className="w-3 h-3 text-[#ac834e] flex-shrink-0" />
+                <span className="truncate">{featuredEvent.location.split(',')[0]}</span>
               </div>
-            ))}
-          </div>
+              <div className="text-sm font-mono font-bold text-[#ac834e]">$499</div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={() => setSelectedEvent(featuredEvent)}
+                className="flex-1 py-2 text-xs font-semibold text-white/70 bg-[#1a1a1a] hover:bg-[#222222] border border-[#ac834e]/25 rounded-xl text-center transition-colors"
+              >
+                Details
+              </button>
+              <button
+                onClick={() => handleAddToCart(featuredEvent)}
+                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider text-[#0e0e0e] bg-[#ac834e] hover:bg-[#c49a62] rounded-xl text-center flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <ShoppingCart className="w-3 h-3" />
+                <span>Reserve</span>
+              </button>
+            </div>
+          </GlowCard>
         </div>
 
         {/* Featured Articles Section */}
@@ -685,7 +713,7 @@ const HomePage: React.FC = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-10"
+              className="mb-8"
             >
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#141414] border border-[#ac834e]/30 text-[#ac834e] text-xs font-mono font-semibold uppercase tracking-widest mb-4">
@@ -702,72 +730,96 @@ const HomePage: React.FC = () => {
             </motion.div>
 
             {/* ============================================================ */}
-            {/* UPCOMING CONCLAVES & EXECUTIVE SUMMITS SHOWCASE (REPLACED)    */}
+            {/* MINIMALISTIC SINGLE UPCOMING EVENT WITH GOLD GLOW            */}
             {/* ============================================================ */}
-            <section className="mb-14 p-6 sm:p-8 rounded-3xl bg-[#101010]/80 border border-[#ac834e]/30 backdrop-blur-md relative overflow-hidden shadow-[0_15px_50px_rgba(0,0,0,0.5)]">
-              {/* Top Banner Header */}
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 pb-5 border-b border-[#ac834e]/20">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#ac834e]/10 border border-[#ac834e]/30 text-[#ac834e] text-xs font-mono font-bold uppercase tracking-widest mb-2.5">
-                    <span className="w-2 h-2 rounded-full bg-[#ac834e] animate-ping" />
-                    <span>Upcoming Conclave Series • 2026</span>
+            <section className="mb-12">
+              <GlowCard
+                customSize
+                glowColor="gold"
+                className="bg-[#121212]/95 border border-[#ac834e]/30 rounded-2xl p-6 sm:p-7 relative overflow-hidden transition-all duration-300 hover:shadow-gold-glow"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  {/* Left Column: Event Details */}
+                  <div className="flex-1 space-y-2.5">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ac834e]/15 text-[#ac834e] border border-[#ac834e]/30 font-semibold uppercase tracking-wider text-[10px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#ac834e] animate-pulse" />
+                        Upcoming Conclave
+                      </span>
+                      <span className="text-white/70 font-mono text-xs flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[#ac834e]" />
+                        {featuredEvent.date}
+                      </span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/70 text-xs flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#ac834e]" />
+                        {featuredEvent.location.split(',')[0]}
+                      </span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-[#ac834e] text-xs font-medium">
+                        {featuredEvent.format}
+                      </span>
+                    </div>
+
+                    <h3
+                      onClick={() => setSelectedEvent(featuredEvent)}
+                      className="text-2xl sm:text-3xl font-serif font-bold text-white hover:text-[#ac834e] transition-colors cursor-pointer tracking-tight"
+                    >
+                      {featuredEvent.title}
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-white/70 font-light leading-relaxed max-w-2xl">
+                      {featuredEvent.tagline}
+                    </p>
+
+                    {/* Keynote Speakers & Capacity */}
+                    <div className="flex flex-wrap items-center gap-4 pt-1 text-xs text-white/60">
+                      <div className="flex items-center gap-2">
+                        <div className="flex -space-x-1.5">
+                          {featuredEvent.speakers.map((spk, idx) => (
+                            <img
+                              key={idx}
+                              src={spk.avatar}
+                              alt={spk.name}
+                              className="w-6 h-6 rounded-full border border-[#ac834e]/50 object-cover"
+                            />
+                          ))}
+                        </div>
+                        <span className="truncate">
+                          Keynotes: <strong className="text-white font-medium">{featuredEvent.speakers[0].name}</strong> ({featuredEvent.speakers[0].role})
+                        </span>
+                      </div>
+                      <span className="text-[#ac834e] font-mono text-xs">
+                        • {featuredEvent.attendeesCount}/{featuredEvent.maxCapacity} seats reserved
+                      </span>
+                    </div>
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white tracking-tight flex items-center gap-3">
-                    <span>Executive Conclaves & Deep Tech Summits</span>
-                    <Sparkles className="w-5 h-5 text-[#ac834e]" />
-                  </h2>
-                  <p className="text-xs sm:text-sm text-white/60 mt-1 max-w-xl font-light">
-                    Exclusive symposiums uniting foundational AI scientists, quantum architects, and sovereign system leaders. Move your cursor to experience the glowing gold borders.
-                  </p>
+
+                  {/* Right Column: Pricing & Cart Action */}
+                  <div className="flex sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between lg:justify-center gap-3 border-t lg:border-t-0 lg:border-l border-[#ac834e]/20 pt-4 lg:pt-0 lg:pl-8 flex-shrink-0">
+                    <div className="text-left lg:text-right">
+                      <div className="text-[10px] text-white/50 uppercase font-mono tracking-wider">Executive Pass</div>
+                      <div className="text-2xl font-bold font-mono text-[#ac834e]">$499</div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedEvent(featuredEvent)}
+                        className="px-3.5 py-2 text-xs font-semibold text-white/70 hover:text-white bg-[#1a1a1a] hover:bg-[#222222] border border-[#ac834e]/30 rounded-xl transition-all"
+                      >
+                        Details
+                      </button>
+                      <button
+                        onClick={() => handleAddToCart(featuredEvent)}
+                        className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[#0e0e0e] bg-[#ac834e] hover:bg-[#c49a62] rounded-xl shadow-gold-glow-sm transition-all flex items-center gap-1.5 active:scale-95"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        <span>Reserve Pass</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-
-                {/* Floating Pass Cart Button */}
-                <button
-                  onClick={() => setIsCartOpen(true)}
-                  className="relative inline-flex items-center gap-2.5 px-5 py-2.5 rounded-xl bg-[#141414] hover:bg-[#1a1a1a] text-white border border-[#ac834e]/40 hover:border-[#ac834e] shadow-gold-glow transition-all text-xs font-bold uppercase tracking-wider group active:scale-95"
-                >
-                  <ShoppingCart className="w-4 h-4 text-[#ac834e] group-hover:scale-110 transition-transform" />
-                  <span>Pass Cart</span>
-                  {totalCartCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-[#ac834e] text-[#0e0e0e] text-[10px] font-black flex items-center justify-center">
-                      {totalCartCount}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {/* Category Filter Pills */}
-              <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-6 scrollbar-none">
-                {['all', 'AI & Neural Tech', 'Quantum & Deep Tech', 'Cyber Architecture', 'Web3 & Fintech'].map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-[#ac834e] text-[#0e0e0e] font-bold shadow-gold-glow-sm'
-                        : 'bg-[#181818] text-white/70 hover:text-white border border-[#ac834e]/20 hover:border-[#ac834e]/40'
-                    }`}
-                  >
-                    {cat === 'all' ? 'All Conclaves' : cat}
-                  </button>
-                ))}
-              </div>
-
-              {/* Grid of Glowing Event Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredEvents.map((event) => {
-                  const inCart = cart.some(i => i.event.id === event.id);
-                  return (
-                    <EventCard
-                      key={event.id}
-                      event={event}
-                      onSelectEvent={(ev) => setSelectedEvent(ev)}
-                      onAddToCart={(ev) => handleAddToCart(ev)}
-                      isInCart={inCart}
-                    />
-                  );
-                })}
-              </div>
+              </GlowCard>
             </section>
 
             {/* Featured Articles */}
