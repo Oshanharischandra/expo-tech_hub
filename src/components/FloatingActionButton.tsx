@@ -5,8 +5,8 @@ import { Feather } from 'lucide-react';
 const FloatingActionButton: React.FC = () => {
   const location = useLocation();
 
-  // Hide on write dashboard, login, and registration pages
-  if (location.pathname === '/write' || location.pathname === '/login' || location.pathname === '/register') {
+  // Hide on write dashboard, login, registration, and article pages
+  if (location.pathname === '/write' || location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/article/')) {
     return null;
   }
 

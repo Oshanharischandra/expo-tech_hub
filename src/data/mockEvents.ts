@@ -1,0 +1,135 @@
+import { TechEvent } from '../types/event';
+
+export const mockEvents: TechEvent[] = [
+  {
+    id: 'ai-conclave-2026',
+    title: 'Autonomous Systems & LLM Conclave 2026',
+    tagline: 'Architecting Next-Generation Agentic Intelligence & Cognitive Infra',
+    description: 'An exclusive gathering of deep tech architects, foundational model researchers, and engineering leaders discussing multi-agent reasoning, neuromorphic acceleration, and enterprise autonomy.',
+    category: 'AI & Neural Tech',
+    date: 'OCT 28, 2026',
+    time: '09:30 AM - 05:30 PM EST',
+    location: 'Metropolitan Tech Pavilion, San Francisco / Live Hologram',
+    format: 'Hybrid',
+    tier: 'VIP Conclave',
+    attendeesCount: 420,
+    maxCapacity: 500,
+    featured: true,
+    speakers: [
+      {
+        name: 'Dr. Evelyn Vance',
+        role: 'Chief AI Scientist',
+        company: 'Cognitive Dynamics',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      },
+      {
+        name: 'Julian Sterling',
+        role: 'VP of Autonomous Core',
+        company: 'Aetheria Neural',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+      }
+    ],
+    tags: ['Agentic AI', 'Multi-Modal', 'Hardware Synthesis'],
+    bannerUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'quantum-core-summit',
+    title: 'Quantum Advantage: Qubit Fault Tolerance Summit',
+    tagline: 'Bridging the Gap from NISQ to Commercial Fault-Tolerant Quantum Systems',
+    description: 'Explore the latest milestones in topological qubits, cryogenic computing, and quantum error mitigation architectures for next-gen cryptography and complex molecular simulations.',
+    category: 'Quantum & Deep Tech',
+    date: 'NOV 12, 2026',
+    time: '10:00 AM - 04:00 PM GMT',
+    location: 'Crown Hall, London / Virtual Stage',
+    format: 'Hybrid',
+    tier: 'Executive Summit',
+    attendeesCount: 280,
+    maxCapacity: 300,
+    featured: true,
+    speakers: [
+      {
+        name: 'Marcus K. Zhao',
+        role: 'Director of Quantum Lattice',
+        company: 'TensorQuantum Labs',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+      }
+    ],
+    tags: ['Quantum Computing', 'Cryogenics', 'Post-Quantum Crypto'],
+    bannerUrl: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cyber-architecture-expo',
+    title: 'Zero-Trust Cyber Citadel 2026',
+    tagline: 'Hardening Sovereign Infrastructure Against AI-Driven Intrusions',
+    description: 'High-level executive briefing on post-quantum cryptographic standards, autonomous red-teaming, hardware-level isolation, and real-time biometric attestation.',
+    category: 'Cyber Architecture',
+    date: 'NOV 24, 2026',
+    time: '01:00 PM - 07:00 PM EST',
+    location: 'The Obsidian Tower, New York',
+    format: 'In-Person',
+    tier: 'VIP Conclave',
+    attendeesCount: 195,
+    maxCapacity: 200,
+    featured: false,
+    speakers: [
+      {
+        name: 'Soren Blackwell',
+        role: 'Principal Security Architect',
+        company: 'Vanguard Cyber Defense',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+      }
+    ],
+    tags: ['Zero Trust', 'Hardware Sec', 'Kernel Defense'],
+    bannerUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'web3-liquidity-symposium',
+    title: 'Institutional Decentralized Finance Symposium',
+    tagline: 'High-Throughput Rollups, Liquid Staking & Compliant Institutional Protocols',
+    description: 'A closed-door forum exploring sovereign rollups, zero-knowledge proofs in KYC compliance, and atomic cross-chain settlements for global prime brokerages.',
+    category: 'Web3 & Fintech',
+    date: 'DEC 05, 2026',
+    time: '02:00 PM - 08:30 PM CET',
+    location: 'Zurich Financial Hub, Switzerland',
+    format: 'Hybrid',
+    tier: 'Executive Summit',
+    attendeesCount: 350,
+    maxCapacity: 400,
+    featured: false,
+    speakers: [
+      {
+        name: 'Elena Rostova',
+        role: 'Chief Protocol Officer',
+        company: 'Aura Capital Labs',
+        avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+      }
+    ],
+    tags: ['ZK Proofs', 'Institutional DeFi', 'Cross-Chain'],
+    bannerUrl: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'cloud-edge-masterclass',
+    title: 'Hyperscale Edge & Distributed Topology Masterclass',
+    tagline: 'Sub-Millisecond Edge Compute and Global Distributed Consensus',
+    description: 'Technical masterclass dedicated to distributed state machines, serverless WebAssembly runtimes at the edge, and ultra-low latency mesh networking.',
+    category: 'Cloud & Distributed',
+    date: 'DEC 14, 2026',
+    time: '11:00 AM - 06:00 PM PST',
+    location: 'Tech Nexus Center, Seattle / Virtual Lab',
+    format: 'Virtual Keynote',
+    tier: 'Developer Masterclass',
+    attendeesCount: 512,
+    maxCapacity: 600,
+    featured: false,
+    speakers: [
+      {
+        name: 'Devon Thorne',
+        role: 'Distinguished Engineer',
+        company: 'HyperOrbit Systems',
+        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+      }
+    ],
+    tags: ['Edge Compute', 'Wasm Runtimes', 'Mesh Consensus'],
+    bannerUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=80',
+  }
+];

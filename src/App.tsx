@@ -21,15 +21,17 @@ import ProfilePage from './pages/ProfilePage';
 import ArticlePreviewPage from './pages/ArticlePreviewPage';
 import BottomNavigation from './components/BottomNavigation';
 import FloatingActionButton from './components/FloatingActionButton';
+import LuxuryLoader from './components/common/LuxuryLoader';
 
 function App() {
   return (
     <AuthProvider>
       <AppProvider>
         <QuizProvider>
+          <LuxuryLoader />
           <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <AuthGate>
-              <div className="min-h-screen bg-dark-950">
+              <div className="min-h-screen bg-[#0e0e0e] text-white">
                 <Header />
                 <Routes>
                   <Route path="/" element={<HomePage />} />

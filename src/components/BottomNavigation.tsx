@@ -7,8 +7,8 @@ const BottomNavigation: React.FC = () => {
     const location = useLocation();
     const { state } = useAuth();
 
-    // Hide on login and registration pages
-    if (location.pathname === '/login' || location.pathname === '/register') {
+    // Hide on login, registration, and article pages
+    if (location.pathname === '/login' || location.pathname === '/register' || location.pathname.startsWith('/article/')) {
         return null;
     }
 

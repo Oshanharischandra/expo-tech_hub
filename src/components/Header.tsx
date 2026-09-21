@@ -217,7 +217,6 @@ const Header: React.FC = () => {
       <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-md" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 ">
-          {/* Logo / Page Title */}
           {/* Logo / Page Title / Custom Content */}
           <div className="flex items-center space-x-2 ml-1 md:-ml-4">
             {appState.headerMode === 'custom' ? (
@@ -227,18 +226,18 @@ const Header: React.FC = () => {
                 {getPageTitle() ? (
                   <>
                     <div className="md:hidden text-xl font-bold text-white">{getPageTitle()}</div>
-                    <img
-                      src="/logo.png"
-                      alt="edify.exposition.lk logo"
-                      className="hidden md:block w-36 h-12 sm:w-48 sm:h-16 object-contain max-w-[180px] sm:max-w-none"
-                    />
+                    <div className="hidden md:flex items-center py-1">
+                      <span className="font-extrabold text-2xl tracking-tight text-white font-sans">
+                        Tech <span className="text-[#ac834e]">HUB</span>
+                      </span>
+                    </div>
                   </>
                 ) : (
-                  <img
-                    src="/logo.png"
-                    alt="edify.exposition.lk logo"
-                    className="w-36 h-12 sm:w-48 sm:h-16 object-contain max-w-[180px] sm:max-w-none"
-                  />
+                  <div className="flex items-center py-1">
+                    <span className="font-extrabold text-2xl tracking-tight text-white font-sans">
+                      Tech <span className="text-[#ac834e]">HUB</span>
+                    </span>
+                  </div>
                 )}
               </Link>
             )}

@@ -81,10 +81,12 @@ export const articlesService = {
         .order('published_at', { ascending: false })
         .limit(12);
       if (res.error) throw res.error;
-      //console.log('[DEBUG] listFeatured raw result:', res.data.map((r: any) => ({ t: r.title, ca: r.custom_author })));
       return res.data;
     });
-    if (error) throw error;
+    if (error) {
+      console.warn('[articlesService.listFeatured] Remote table not available, using fallback:', error.message);
+      return [];
+    }
     return ((data as any) || []).map((row: any) => ({
       id: row.id,
       title: row.title,
@@ -130,10 +132,12 @@ export const articlesService = {
         .order('published_at', { ascending: false })
         .range(from, to);
       if (res.error) throw res.error;
-      //console.log('[DEBUG] listAll raw result:', res.data.map((r: any) => ({ t: r.title, ca: r.custom_author })));
       return res.data;
     });
-    if (error) throw error;
+    if (error) {
+      console.warn('[articlesService.listAll] Remote table not available, using fallback:', error.message);
+      return [];
+    }
     return ((data as any) || []).map((row: any) => ({
       id: row.id,
       title: row.title,
@@ -226,8 +230,10 @@ export const articlesService = {
     });
     if (error) {
       if ((error as any).code === 'PGRST116') return null;
-      throw error;
+      console.warn('[articlesService.getBySlug] Error fetching slug, falling back:', error.message);
+      return null;
     }
+    if (!data) return null;
     const row: any = data as any;
     return {
       id: row.id,
@@ -270,12 +276,12 @@ export const articlesService = {
         .eq('id', id)
         .single();
       if (res.error) throw res.error;
-      //console.log('[DEBUG] getById raw result:', { id: res.data.id, t: res.data.title, ca: res.data.custom_author });
       return res.data;
     });
     if (error) {
       if ((error as any).code === 'PGRST116') return null;
-      throw error;
+      console.warn('[articlesService.getById] Error fetching id, falling back:', error.message);
+      return null;
     }
     const row: any = data as any;
     return {

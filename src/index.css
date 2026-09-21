@@ -5,14 +5,18 @@
 @tailwind utilities;
 
 @layer base {
+  html, body, * {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
   html {
-    font-family: 'Inter', system-ui, sans-serif;
     line-height: 1.5;
     overflow-x: hidden;
   }
 
   body {
-    @apply bg-dark-950 text-white;
+    background-color: #0e0e0e;
+    color: #ffffff;
     overflow-x: hidden;
   }
 }
@@ -204,21 +208,24 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar using #ac834e */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-dark-900;
+  background: #0e0e0e;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-dark-700 rounded;
+  background: #282828;
+  border-radius: 4px;
+  border: 1px solid rgba(172, 131, 78, 0.3);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-dark-600;
+  background: #ac834e;
 }
 
 /* Smooth scrolling */
@@ -233,21 +240,67 @@ html {
 
 /* Selection styles */
 ::selection {
-  @apply bg-primary-600/30;
+  background: rgba(172, 131, 78, 0.3);
+  color: #ffffff;
 }
 
-/* Loading animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200px 0;
-  }
-  100% {
-    background-position: calc(200px + 100%) 0;
-  }
+/* Glow Card CSS Implementation */
+[data-glow] {
+  --border-size: calc(var(--border, 2) * 1px);
+  --spotlight-size: calc(var(--size, 250) * 1px);
+  --hue: calc(var(--base) + (var(--xp, 0) * var(--spread, 0)));
+  position: relative;
+  border-radius: calc(var(--radius, 14) * 1px);
+  isolation: isolate;
 }
 
-.shimmer {
-  background: linear-gradient(90deg, #374151 0%, #4b5563 50%, #374151 100%);
-  background-size: 200px 100%;
-  animation: shimmer 1.5s infinite;
+[data-glow]::before,
+[data-glow]::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--border-size) * -1);
+  border: var(--border-size) solid transparent;
+  border-radius: calc(var(--radius, 14) * 1px);
+  pointer-events: none;
+  background-attachment: fixed;
+  box-sizing: border-box;
+}
+
+[data-glow]::before {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
+    calc(var(--x, 0) * 1px)
+    calc(var(--y, 0) * 1px),
+    hsl(34 38% 49% / var(--border-spot-opacity, 0.95)),
+    transparent 100%
+  );
+  filter: brightness(2.2);
+  mask: 
+    linear-gradient(#000 0 0) content-box, 
+    linear-gradient(#000 0 0);
+  -webkit-mask: 
+    linear-gradient(#000 0 0) content-box, 
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  z-index: 2;
+}
+
+[data-glow]::after {
+  background-image: radial-gradient(
+    calc(var(--spotlight-size) * 0.5) calc(var(--spotlight-size) * 0.5) at
+    calc(var(--x, 0) * 1px)
+    calc(var(--y, 0) * 1px),
+    hsl(34 38% 49% / var(--bg-spot-opacity, 0.05)),
+    transparent 100%
+  );
+  z-index: 1;
+  background-color: var(--backdrop, #0e0e0e);
+  border: var(--border-size) solid var(--backup-border, rgba(172, 131, 78, 0.35));
+}
+
+/* Ensure children are above pseudo-elements */
+[data-glow] > * {
+  position: relative;
+  z-index: 3;
 }

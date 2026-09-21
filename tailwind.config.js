@@ -5,16 +5,16 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#AC834F',
-          500: '#AC834F',
-          600: '#AC834F',
-          700: '#AC834F',
-          800: '#AC834F',
-          900: '#AC834F',
+          50: '#fdfbf7',
+          100: '#f8f2e9',
+          200: '#f0e3ce',
+          300: '#e5ceac',
+          400: '#c49a62',
+          500: '#ac834e',
+          600: '#ac834e',
+          700: '#8e6939',
+          800: '#75542b',
+          900: '#5c4120',
         },
         dark: {
           50: '#f9fafb',
@@ -23,16 +23,30 @@ export default {
           300: '#d1d5db',
           400: '#9ca3af',
           500: '#6b7280',
-          600: '#4b5563',
-          700: '#374151',
-          800: '#1f2937',
-          900: '#111827',
+          600: '#383838',
+          700: '#282828',
+          800: '#1c1c1c',
+          900: '#141414',
           950: '#0e0e0e',
-        }
+        },
+        gold: {
+          DEFAULT: '#ac834e',
+          light: '#c49a62',
+          dark: '#8e6939',
+          400: '#ac834e',
+          500: '#ac834e',
+          600: '#946f3e',
+        },
+        brand: {
+          gold: '#ac834e',
+          white: '#ffffff',
+          dark: '#0e0e0e',
+        },
       },
       fontFamily: {
-        'display': ['Inter', 'system-ui', 'sans-serif'],
-        'body': ['Inter', 'system-ui', 'sans-serif'],
+        'sans': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'display': ['"Plus Jakarta Sans"', 'sans-serif'],
+        'body': ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
@@ -43,6 +57,11 @@ export default {
       },
       backdropBlur: {
         xs: '2px',
+      },
+      boxShadow: {
+        'gold-glow': '0 0 25px rgba(172, 131, 78, 0.25)',
+        'gold-glow-lg': '0 0 45px rgba(172, 131, 78, 0.35)',
+        'gold-glow-sm': '0 0 12px rgba(172, 131, 78, 0.15)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
