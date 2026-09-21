@@ -28,6 +28,7 @@ import { FollowButton } from '../components/follow/FollowButton';
 import BadgeList from '../components/badges/BadgeList'; // Import BadgeList
 import MediumStyleArticleCard from '../components/MediumStyleArticleCard';
 import Avatar from '../components/common/Avatar';
+import { GlowCard } from '../components/ui/spotlight-card';
 
 const DEFAULT_COVER_IMAGE = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=60';
 
@@ -437,7 +438,7 @@ const ProfilePage: React.FC = () => {
                 ) : (
                   <>
                     {user.socialLinks?.linkedin && (
-                      <a href={user.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400 transition-colors">
+                      <a href={user.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary-400 transition-colors">
                         <Linkedin className="w-5 h-5" />
                       </a>
                     )}
@@ -530,7 +531,7 @@ const ProfilePage: React.FC = () => {
         {/* ==================== DESKTOP VIEW (Unchanged) ==================== */}
         <div className="hidden md:block">
           {/* Header Section */}
-          <div className="bg-dark-900 rounded-lg p-6 mb-6">
+          <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6 mb-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
               <div className="flex items-center space-x-4 mb-4 md:mb-0">
                 <div className="relative">
@@ -649,28 +650,28 @@ const ProfilePage: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
+          </GlowCard>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Row 1: Badges & Stats */}
             {/* Badges Section */}
             <div className="lg:col-span-2">
-              <div className="bg-dark-900 rounded-lg p-6 h-full">
+              <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6 h-full">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center space-x-2">
                   <Award className="w-5 h-5 text-primary-400" />
                   <span>Badges & Achievements</span>
                 </h2>
                 <BadgeList earnedBadgeIds={user.badges || []} />
-              </div>
+              </GlowCard>
             </div>
 
             {/* Stats */}
             <div className="lg:col-span-1">
-              <div className="bg-dark-900 rounded-lg p-6 h-full">
+              <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6 h-full">
                 <h2 className="text-xl font-semibold text-white mb-4">Stats</h2>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Users className="w-5 h-5 text-blue-400" />
+                      <Users className="w-5 h-5 text-primary-400" />
                       <span className="text-gray-300">Followers</span>
                     </div>
                     <span className="text-white font-semibold">{user.stats.followersCount}</span>
@@ -692,17 +693,17 @@ const ProfilePage: React.FC = () => {
                     <span className="text-white font-semibold">{user.stats.articlesCount}</span>
                   </div>
                 </div>
-              </div>
+              </GlowCard>
             </div>
 
             {/* Row 2: Bio & Social */}
             {/* Bio Section */}
             <div className="lg:col-span-2">
-              <div className="bg-dark-900 rounded-lg p-6 h-full">
+              <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6 h-full">
                 <h2 className="text-xl font-semibold text-white mb-4">About</h2>
                 {isCurrentUser && isEditing && (
-                  <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
-                    <p className="text-blue-300 text-sm">
+                  <div className="mb-4 p-3 bg-primary-900/20 border border-primary-500/30 rounded-lg">
+                    <p className="text-primary-300 text-sm">
                       💡 <strong>Tip:</strong> Click on your avatar to upload a new profile picture. Drag and drop is also supported!
                     </p>
                   </div>
@@ -719,16 +720,16 @@ const ProfilePage: React.FC = () => {
                     {user.bio || (isCurrentUser ? 'No bio available. Click "Edit Profile" to add one.' : 'No bio available.')}
                   </p>
                 )}
-              </div>
+              </GlowCard>
             </div>
 
             {/* Social Links */}
             <div className="lg:col-span-1">
-              <div className="bg-dark-900 rounded-lg p-6 h-full">
+              <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6 h-full">
                 <h2 className="text-xl font-semibold text-white mb-4">Social Links</h2>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <Linkedin className="w-5 h-5 text-blue-600" />
+                    <Linkedin className="w-5 h-5 text-primary-600" />
                     {isCurrentUser && isEditing ? (
                       <input
                         type="url"
@@ -742,7 +743,7 @@ const ProfilePage: React.FC = () => {
                         href={user.socialLinks.linkedin}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                        className="text-primary-400 hover:text-primary-300 hover:underline transition-colors"
                       >
                         LinkedIn
                       </a>
@@ -775,12 +776,12 @@ const ProfilePage: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </div>
+              </GlowCard>
             </div>
           </div>
           {/* Articles Section - Full Width */}
           <div className="mt-6">
-            <div className="bg-dark-900 rounded-lg p-6">
+            <GlowCard customSize glowColor="gold" className="bg-dark-900 rounded-lg p-6">
               <h2 className="text-xl font-semibold text-white mb-4 flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-purple-400" />
                 <span>Published Articles</span>
@@ -830,7 +831,7 @@ const ProfilePage: React.FC = () => {
               ) : (
                 <p className="text-gray-400 text-center py-4">No articles published yet.</p>
               )}
-            </div>
+            </GlowCard>
           </div>
         </div>
       </div>

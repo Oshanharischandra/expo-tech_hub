@@ -4,6 +4,7 @@ import { editorService } from '../services/editorService';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '../hooks/useToast';
 import supabase from '../services/supabaseClient';
+import { GlowCard } from '../components/ui/spotlight-card';
 
 const EditorDashboard: React.FC = () => {
   const { state: authState } = useAuth();
@@ -147,7 +148,7 @@ const EditorDashboard: React.FC = () => {
             {events.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No events found.</p>
             ) : events.map(event => (
-              <div key={event.id} className="bg-dark-900 border border-dark-800 rounded-xl p-4">
+              <GlowCard customSize glowColor="gold" key={event.id} className="bg-dark-900 rounded-xl p-4">
                 <div className="flex flex-col mb-4">
                   <div className="flex justify-between items-start mb-1">
                     <h3 className="font-semibold text-white">{event.title}</h3>
@@ -184,6 +185,9 @@ const EditorDashboard: React.FC = () => {
                     <div className="flex flex-wrap gap-2">
                       {event.status === 'pending' && (
                         <>
+                          <a href={`/event/${event.id}`} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 bg-primary-900/20 border border-primary-900/30 text-primary-400 hover:bg-primary-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
+                            PREVIEW
+                          </a>
                           <button onClick={() => initiateApprove(event.id)} className="flex-1 py-2 bg-green-900/20 border border-green-900/30 text-green-400 hover:bg-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
                             APPROVE
                           </button>
@@ -194,7 +198,10 @@ const EditorDashboard: React.FC = () => {
                       )}
                       {event.status === 'approved' && (
                         <>
-                          <a href={`/write?edit=${event.id}`} className="flex-1 text-center py-2 bg-blue-900/20 border border-blue-900/30 text-blue-400 hover:bg-blue-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
+                          <a href={`/event/${event.id}`} target="_blank" rel="noopener noreferrer" className="flex-1 text-center py-2 bg-primary-900/20 border border-primary-900/30 text-primary-400 hover:bg-primary-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
+                            PREVIEW
+                          </a>
+                          <a href={`/write?edit=${event.id}`} className="flex-1 text-center py-2 bg-amber-900/20 border border-amber-900/30 text-amber-400 hover:bg-amber-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
                             EDIT
                           </a>
                           <button onClick={() => initiateArchive(event.id)} className="flex-1 py-2 bg-orange-900/20 border border-orange-900/30 text-orange-400 hover:bg-orange-900/30 rounded-lg text-xs font-bold uppercase tracking-wider">
@@ -205,7 +212,7 @@ const EditorDashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </GlowCard>
             ))}
           </div>
         )}
@@ -232,7 +239,7 @@ const EditorDashboard: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div className="bg-dark-800 rounded-xl border border-dark-700 overflow-hidden shadow-lg">
+            <GlowCard customSize glowColor="gold" className="bg-dark-800 rounded-xl overflow-hidden shadow-lg">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-dark-900 border-b border-dark-700">
@@ -295,6 +302,14 @@ const EditorDashboard: React.FC = () => {
                           <div className="flex justify-end gap-2">
                             {event.status === 'pending' && (
                               <>
+                                <a
+                                  href={`/event/${event.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 bg-primary-900/20 text-primary-400 border border-primary-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-primary-900/40 transition-colors"
+                                >
+                                  PREVIEW
+                                </a>
                                 <button
                                   onClick={() => initiateApprove(event.id)}
                                   className="px-3 py-1.5 bg-green-900/20 text-green-400 border border-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-900/40 transition-colors"
@@ -312,8 +327,16 @@ const EditorDashboard: React.FC = () => {
                             {event.status === 'approved' && (
                               <>
                                 <a
+                                  href={`/event/${event.id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 bg-primary-900/20 text-primary-400 border border-primary-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-primary-900/40 transition-colors"
+                                >
+                                  PREVIEW
+                                </a>
+                                <a
                                   href={`/write?edit=${event.id}`}
-                                  className="px-3 py-1.5 bg-blue-900/20 text-blue-400 border border-blue-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-blue-900/40 transition-colors"
+                                  className="px-3 py-1.5 bg-amber-900/20 text-amber-400 border border-amber-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-amber-900/40 transition-colors"
                                 >
                                   EDIT
                                 </a>
@@ -342,7 +365,7 @@ const EditorDashboard: React.FC = () => {
                   )}
                 </tbody>
               </table>
-            </div>
+            </GlowCard>
           )}
         </div>
       </div>

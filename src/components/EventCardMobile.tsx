@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
 import { Event } from '../types/payload';
+import { GlowCard } from './ui/spotlight-card';
 
 interface EventCardMobileProps {
     event: Event;
@@ -27,8 +28,9 @@ const EventCardMobile: React.FC<EventCardMobileProps> = ({ event, index = 0 }) =
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className="bg-dark-900/50 border border-dark-800 rounded-xl overflow-hidden active:scale-[0.99] transition-transform mb-4"
+            className="mb-4"
         >
+            <GlowCard customSize glowColor="gold" className="!p-0 overflow-hidden active:scale-[0.99] transition-transform">
             <Link to={`/event/${event.id}`}>
                 <div className="flex min-h-0">
                     <div className="flex-1 min-w-0 p-4 space-y-2">
@@ -74,6 +76,7 @@ const EventCardMobile: React.FC<EventCardMobileProps> = ({ event, index = 0 }) =
                     )}
                 </div>
             </Link>
+            </GlowCard>
         </motion.article>
     );
 };

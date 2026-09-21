@@ -80,7 +80,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
     switch (notification.type) {
       case 'publish':
         return {
-          icon: <Bell className="w-4 h-4 text-blue-400" />,
+          icon: <Bell className="w-4 h-4 text-primary-400" />,
           primaryText: notification.title || 'New article published',
           secondaryText: notification.message,
           showDot: !notification.read
@@ -94,7 +94,7 @@ const NotificationDropdown: React.FC<NotificationDropdownProps> = ({
         };
       case 'comment':
         return {
-          icon: <MessageCircle className="w-4 h-4 text-blue-400" />,
+          icon: <MessageCircle className="w-4 h-4 text-primary-400" />,
           primaryText: notification.title || 'New comment',
           secondaryText: notification.message,
           showDot: !notification.read

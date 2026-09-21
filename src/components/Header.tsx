@@ -249,14 +249,14 @@ const Header: React.FC = () => {
                     <img
                       src="/logo.png"
                       alt="TechHub logo"
-                      className="hidden md:block w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[2.5] origin-left ml-8 mr-16 md:mr-32"
+                      className="hidden md:block w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[1.0] origin-left ml-4 md:mr-12"
                     />
                   </>
                 ) : (
                   <img
                     src="/logo.png"
                     alt="TechHub logo"
-                    className="w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[2.5] origin-left ml-8 mr-16 md:mr-32"
+                    className="w-48 h-16 sm:w-64 sm:h-20 object-contain max-w-[240px] sm:max-w-none scale-[1.0] origin-left ml-4 md:mr-12"
                   />
                 )}
               </Link>

@@ -1,14 +1,70 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import supabase from '../services/supabaseClient';
+import { editorService } from '../services/editorService';
 import { Event } from '../types/payload';
 import { eventsService } from '../services/eventsService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { GlowCard } from '../components/ui/spotlight-card';
 
 const EventDetailView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [countdown, setCountdown] = useState<{ days: number; hours: number; minutes: number; passed: boolean } | null>(null);
+
+  const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && (data.role === 'admin' || data.role === 'co-admin')) {
+          setIsAdmin(true);
+        }
+      } catch (e) {
+        console.error('Failed to check admin status', e);
+      }
+    };
+    checkAdmin();
+  }, []);
+
+  const handleAdminAction = async (action: 'approve' | 'reject' | 'archive') => {
+    if (!event) return;
+    if (!window.confirm(`Are you sure you want to ${action} this event?`)) return;
+    
+    setIsProcessingAction(true);
+    try {
+      if (action === 'approve') {
+        await editorService.approveEvent(event.id);
+      } else if (action === 'reject') {
+        const reason = prompt('Please provide a reason for rejection (optional):');
+        if (reason === null) {
+          setIsProcessingAction(false);
+          return;
+        }
+        await editorService.rejectEvent(event.id, reason || undefined);
+      } else if (action === 'archive') {
+        await editorService.archiveEvent(event.id);
+      }
+      navigate('/editor');
+    } catch (e) {
+      alert(`Failed to ${action} event`);
+      console.error(e);
+    } finally {
+      setIsProcessingAction(false);
+    }
+  };
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -93,11 +149,49 @@ const EventDetailView: React.FC = () => {
   return (
     <div className="min-h-screen bg-dark-950 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <Link to="/" className="text-primary-500 hover:text-primary-400 font-medium mb-6 inline-block">
-          &larr; Back to Events
+        <Link to={isAdmin ? "/editor" : "/"} className="text-primary-500 hover:text-primary-400 font-medium mb-6 inline-block">
+          &larr; Back to {isAdmin ? "Dashboard" : "Events"}
         </Link>
         
-        <div className="bg-dark-900 border border-dark-800 rounded-xl overflow-hidden shadow-lg">
+        {isAdmin && (
+          <div className="bg-dark-900 border border-dark-800 rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="text-white font-bold mb-1">OC Admin Controls</h3>
+              <p className="text-sm text-gray-400">Current Status: <span className="font-bold text-white uppercase">{event.status}</span></p>
+            </div>
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              {event.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => handleAdminAction('approve')}
+                    disabled={isProcessingAction}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-green-900/20 text-green-400 border border-green-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-green-900/40 transition-colors disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleAdminAction('reject')}
+                    disabled={isProcessingAction}
+                    className="flex-1 sm:flex-none px-4 py-2 bg-red-900/20 text-red-400 border border-red-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-red-900/40 transition-colors disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </>
+              )}
+              {event.status === 'approved' && (
+                <button
+                  onClick={() => handleAdminAction('archive')}
+                  disabled={isProcessingAction}
+                  className="w-full sm:w-auto px-4 py-2 bg-orange-900/20 text-orange-400 border border-orange-900/30 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-orange-900/40 transition-colors disabled:opacity-50"
+                >
+                  Archive
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <GlowCard customSize glowColor="gold" className="!p-0 overflow-hidden shadow-lg border-0">
           {event.cover_image && (
             <div className="w-full h-64 md:h-96 relative">
               <img
@@ -172,32 +266,61 @@ const EventDetailView: React.FC = () => {
               <p className="whitespace-pre-wrap leading-relaxed">{event.description}</p>
             </div>
             
-            {event.important_dates && event.important_dates.length > 0 && (
-              <div className="mb-10">
-                <h3 className="text-xl font-bold text-white mb-6">Important Dates</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {event.important_dates.map((dateObj: any, idx: number) => {
-                    const dateVal = new Date(dateObj.date_value || dateObj.date);
-                    const isValidDate = !isNaN(dateVal.getTime());
-                    
-                    return (
-                      <div key={idx} className="flex flex-col bg-dark-900 p-5 rounded-xl border border-dark-700/50 hover:border-dark-600 transition-colors shadow-lg relative overflow-hidden group">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-primary-900 opacity-50 group-hover:opacity-100 transition-opacity" />
-                        <span className="text-primary-400 font-bold text-xs mb-2 uppercase tracking-widest">
-                          {dateObj.label || dateObj.title || 'Important Date'}
-                        </span>
-                        <span className="text-gray-200 font-medium text-lg mb-1">
-                          {isValidDate ? dateVal.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA'}
-                        </span>
-                        <span className="text-gray-500 text-sm font-medium">
-                          {isValidDate ? dateVal.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </div>
-                    );
-                  })}
+            {(() => {
+              let parsedDates: any[] = [];
+              try {
+                if (typeof event.important_dates === 'string') {
+                  parsedDates = JSON.parse(event.important_dates);
+                } else if (event.important_dates) {
+                  parsedDates = event.important_dates as any[];
+                }
+                if (!Array.isArray(parsedDates)) {
+                  parsedDates = parsedDates ? [parsedDates] : [];
+                }
+              } catch (e) {
+                parsedDates = [];
+              }
+              
+              if (!parsedDates || parsedDates.length === 0) {
+                return (
+                  <div className="mb-10">
+                    <h3 className="text-xl font-bold text-white mb-6">Important Dates</h3>
+                    <p className="text-gray-400 text-sm">No important dates specified.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="mb-10">
+                  <h3 className="text-xl font-bold text-white mb-6">Important Dates</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {parsedDates.map((dateObj: any, idx: number) => {
+                      if (!dateObj) return null;
+                      const isString = typeof dateObj === 'string';
+                      const dateString = isString ? dateObj : (dateObj.date_value || dateObj.date || dateObj);
+                      const dateVal = new Date(dateString);
+                      const isValidDate = !isNaN(dateVal.getTime());
+                      const label = isString ? 'Important Date' : (dateObj.label || dateObj.title || 'Important Date');
+                      
+                      return (
+                        <GlowCard key={idx} customSize glowColor="gold" className="flex flex-col !bg-dark-900 p-5 rounded-xl border-0 shadow-lg relative overflow-hidden group">
+                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-primary-900 opacity-50 group-hover:opacity-100 transition-opacity" />
+                          <span className="text-primary-400 font-bold text-xs mb-2 uppercase tracking-widest">
+                            {label}
+                          </span>
+                          <span className="text-gray-200 font-medium text-lg mb-1">
+                            {isValidDate ? dateVal.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : (isString ? dateString : 'TBA')}
+                          </span>
+                          <span className="text-gray-500 text-sm font-medium">
+                            {isValidDate ? dateVal.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </GlowCard>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             
             {event.registration_link && (
               <div className="flex flex-col sm:flex-row items-center justify-between bg-dark-800 p-6 rounded-xl border border-dark-700 mt-8">
@@ -220,7 +343,7 @@ const EventDetailView: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
+        </GlowCard>
       </div>
     </div>
   );

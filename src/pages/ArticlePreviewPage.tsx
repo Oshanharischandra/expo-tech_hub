@@ -133,7 +133,7 @@ const ArticlePreviewPage: React.FC = () => {
               <span className="text-sm">Back</span>
             </Link>
             <div className="flex items-center space-x-2">
-              <Eye className="w-3 h-3 text-blue-400" />
+              <Eye className="w-3 h-3 text-primary-400" />
               <span className="text-xs text-gray-400">Preview</span>
             </div>
           </div>
@@ -178,7 +178,7 @@ const ArticlePreviewPage: React.FC = () => {
                 <span>Back to Editor</span>
               </Link>
               <div className="flex items-center space-x-2">
-                <Eye className="w-4 h-4 text-blue-400" />
+                <Eye className="w-4 h-4 text-primary-400" />
                 <span className="text-sm text-gray-400">Preview Mode</span>
               </div>
             </div>

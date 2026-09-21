@@ -93,7 +93,7 @@ const AiPromptModal: React.FC<AiPromptModalProps> = ({ onConfirm, onClose, isLoa
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full py-3 bg-gradient-to-r from-primary-600 to-indigo-600 text-white rounded-lg font-bold shadow-lg shadow-primary-900/20 hover:from-primary-500 hover:to-indigo-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-gradient-to-r from-primary-600 to-amber-600 text-white rounded-lg font-bold shadow-lg shadow-primary-900/20 hover:from-primary-500 hover:to-amber-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
                                     <>

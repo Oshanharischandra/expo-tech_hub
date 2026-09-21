@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Event } from '../types/payload';
+import { GlowCard } from './ui/spotlight-card';
 
 interface EventCardProps {
   event: Event;
@@ -26,8 +27,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, featured = false }) => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative overflow-hidden rounded-xl bg-dark-900/50 border border-dark-800 hover:border-primary-500/50 transition-all duration-300"
+        className="h-full"
       >
+        <GlowCard customSize glowColor="gold" className="group !p-0 overflow-hidden h-full">
         <div className={`${hasValidCover ? 'aspect-w-16 aspect-h-9' : 'min-h-[200px] flex flex-col justify-end'} relative`}>
           <Link to={`/event/${event.id}`}>
             {hasValidCover ? (
@@ -79,7 +81,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, featured = false }) => {
               </Link>
             </div>
           </div>
-        </div>
+          </div>
+        </GlowCard>
       </motion.div>
     );
   }
@@ -88,9 +91,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, featured = false }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="group relative overflow-hidden bg-dark-900/50 border border-dark-800 rounded-xl hover:border-primary-500/50 transition-all duration-300"
+      className="h-full"
     >
-      <div className="flex flex-col sm:flex-row min-h-0">
+      <GlowCard customSize glowColor="gold" className="group !p-0 overflow-hidden h-full flex flex-col sm:flex-row min-h-0">
+
         <div className="order-2 sm:order-1 flex-1 min-w-0 p-4 sm:p-6 flex flex-col">
           <div className="flex items-center gap-2 overflow-x-auto pb-3 hide-scrollbar">
             {event.tags && event.tags.slice(0, 3).map((tag, i) => (
@@ -146,7 +150,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, featured = false }) => {
             />
           </Link>
         )}
-      </div>
+      </GlowCard>
     </motion.div>
   );
 };
