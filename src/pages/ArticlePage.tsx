@@ -19,7 +19,9 @@ import {
   Mail,
   BookOpen,
   Compass,
-  TrendingUp
+  TrendingUp,
+  Calendar,
+  Ticket
 } from 'lucide-react';
 import { Article } from '../types/payload';
 import { useApp } from '../contexts/AppContext';
@@ -352,6 +354,24 @@ const ArticlePage: React.FC = () => {
                 {tag}
               </span>
             ))}
+          </div>
+
+          {/* Event Registration Quick Banner */}
+          <div className="mb-4 p-3 bg-white rounded-xl border border-[#ac834e]/30 shadow-sm flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#ac834e] flex-shrink-0" />
+              <div>
+                <div className="text-[10px] font-mono text-[#8e6939] uppercase font-bold">Live Conclave</div>
+                <div className="text-xs font-serif font-bold text-[#141414]">OCT 28, 2026 • Hybrid</div>
+              </div>
+            </div>
+            <Link
+              to="/event/ai-conclave-2026/register"
+              className="px-3 py-1.5 rounded-lg bg-[#ac834e] text-white text-[10px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 flex-shrink-0"
+            >
+              <Ticket className="w-3 h-3" />
+              <span>Register</span>
+            </Link>
           </div>
 
           <h1 className="text-2xl font-serif font-bold text-[#141414] mb-4 leading-tight">
@@ -755,6 +775,30 @@ const ArticlePage: React.FC = () => {
                     ))}
                   </div>
 
+                  {/* Conclave Live Event Callout Banner */}
+                  <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-[#FAF8F5] via-[#f7f3eb] to-[#f2ecde] border border-[#ac834e]/35 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-[#ac834e]/15 border border-[#ac834e]/30 flex items-center justify-center text-[#8e6939] flex-shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#8e6939]">
+                          Official Event Conclave Dispatch
+                        </div>
+                        <div className="text-xs sm:text-sm font-serif font-bold text-[#141414]">
+                          Global Autonomous Systems & LLM Conclave 2026 • Oct 28, 2026
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      to="/event/ai-conclave-2026/register"
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#ac834e] hover:bg-[#946f3e] text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-sm active:scale-95 transition-all flex-shrink-0"
+                    >
+                      <Ticket className="w-3.5 h-3.5" />
+                      <span>Register for Event</span>
+                    </Link>
+                  </div>
+
                   <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif font-bold text-[#141414] mb-6 leading-tight tracking-tight">
                     {article.title}
                   </h1>
@@ -1025,6 +1069,37 @@ const ArticlePage: React.FC = () => {
             {/* Right Column: Recommended Articles & Sidebar Widgets (4 Cols) */}
             <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
               
+              {/* Event Conclave Pass Widget */}
+              <div className="bg-gradient-to-b from-[#181818] to-[#111111] border border-[#ac834e]/35 rounded-2xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.3)] relative overflow-hidden text-white">
+                <div className="absolute -top-12 -right-12 w-28 h-28 bg-[#ac834e]/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex items-center justify-between gap-2 mb-3 relative z-10">
+                  <span className="text-[10px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-md bg-[#ac834e]/20 text-[#c49a62] border border-[#ac834e]/35 font-semibold">
+                    Live Conclave Pass
+                  </span>
+                  <div className="text-right">
+                    <span className="text-[10px] text-white/50 block font-mono leading-none">VIP TIER</span>
+                    <span className="text-lg font-mono font-bold text-[#ac834e]">$499</span>
+                  </div>
+                </div>
+
+                <h4 className="font-serif font-bold text-base text-white mb-2 leading-snug relative z-10">
+                  Global Autonomous Systems & LLM Conclave 2026
+                </h4>
+                <p className="text-xs text-white/70 mb-4 line-clamp-2 font-light relative z-10">
+                  Full access pass to executive keynotes, closed-door breakout sessions, AI sandbox demos, and VIP networking.
+                </p>
+
+                <div className="flex items-center gap-2 relative z-10">
+                  <Link
+                    to="/event/ai-conclave-2026/register"
+                    className="w-full py-2.5 bg-[#ac834e] hover:bg-[#c49a62] text-[#0e0e0e] text-xs font-bold uppercase tracking-wider rounded-xl text-center flex items-center justify-center gap-1.5 shadow-gold-glow-sm active:scale-95 transition-all"
+                  >
+                    <Ticket className="w-3.5 h-3.5" />
+                    <span>Register Now</span>
+                  </Link>
+                </div>
+              </div>
+
               {/* Recommended Articles Widget */}
               <div className="bg-white border border-[#ac834e]/25 rounded-2xl p-6 shadow-[0_10px_35px_rgba(172,131,78,0.06)]">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#ac834e]/15">

@@ -19,6 +19,7 @@ import WriteDashboard from './pages/WriteDashboard';
 import EditorDashboard from './pages/EditorDashboard';
 import ProfilePage from './pages/ProfilePage';
 import ArticlePreviewPage from './pages/ArticlePreviewPage';
+import EventRegistrationPage from './pages/EventRegistrationPage';
 import BottomNavigation from './components/BottomNavigation';
 import FloatingActionButton from './components/FloatingActionButton';
 import LuxuryLoader from './components/common/LuxuryLoader';
@@ -41,6 +42,8 @@ function App() {
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
                   <Route path="/article/:slug" element={<ArticlePage />} />
                   <Route path="/article/preview/:id" element={<ArticlePreviewPage />} />
+                  <Route path="/event/:eventId/register" element={<EventRegistrationPage />} />
+                  <Route path="/event-register/:eventId" element={<EventRegistrationPage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/feed" element={<FeedPage />} />
                   <Route path="/explore" element={<ExplorePage />} />
