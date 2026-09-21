@@ -21,6 +21,7 @@ import Sidebar from '../components/Sidebar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ArticleCardMobile from '../components/ArticleCardMobile';
 import { EventDetailView } from './EventDetailView';
+import { EventDetailsModal } from '../components/EventDetailsModal';
 import { useApp } from '../contexts/AppContext';
 import { articlesService } from '../services/articlesService';
 import supabase from '../services/supabaseClient';
@@ -51,6 +52,7 @@ const HomePage: React.FC = () => {
   // Single featured event (clean & minimalist)
   const featuredEvent = mockEvents[0];
   const [selectedEvent, setSelectedEvent] = useState<TechEvent | null>(null);
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([
     {
@@ -335,17 +337,6 @@ const HomePage: React.FC = () => {
     );
   }
 
-  // If viewing detailed single event
-  if (selectedEvent) {
-    return (
-      <div className="min-h-screen bg-[#0e0e0e] text-white">
-        <EventDetailView
-          event={selectedEvent}
-          onBack={() => setSelectedEvent(null)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0e0e0e] text-white relative">
@@ -614,11 +605,15 @@ const HomePage: React.FC = () => {
               </span>
             </div>
 
-            <Link to="/article/autonomous-systems-llm-conclave-2026">
-              <h3 className="text-lg font-serif font-bold text-white leading-snug hover:text-[#ac834e] transition-colors cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setIsEventModalOpen(true)}
+              className="text-left group/title focus:outline-none"
+            >
+              <h3 className="text-lg font-serif font-bold text-white leading-snug group-hover/title:text-[#ac834e] transition-colors cursor-pointer">
                 {featuredEvent.title}
               </h3>
-            </Link>
+            </button>
 
             <p className="text-xs text-white/70 line-clamp-2 font-light leading-relaxed">
               {featuredEvent.tagline}
@@ -763,11 +758,15 @@ const HomePage: React.FC = () => {
                       </span>
                     </div>
 
-                    <Link to="/article/autonomous-systems-llm-conclave-2026" className="block group/title">
+                    <button
+                      type="button"
+                      onClick={() => setIsEventModalOpen(true)}
+                      className="text-left block group/title focus:outline-none"
+                    >
                       <h3 className="text-2xl sm:text-3xl font-serif font-bold text-white group-hover/title:text-[#ac834e] transition-colors cursor-pointer tracking-tight">
                         {featuredEvent.title}
                       </h3>
-                    </Link>
+                    </button>
 
                     <p className="text-xs sm:text-sm text-white/70 font-light leading-relaxed max-w-2xl">
                       {featuredEvent.tagline}
@@ -874,6 +873,13 @@ const HomePage: React.FC = () => {
           <Sidebar />
         </div>
       </div>
+
+      {/* Event Main Details Popup Modal */}
+      <EventDetailsModal
+        event={featuredEvent}
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+      />
     </div>
   );
 };
