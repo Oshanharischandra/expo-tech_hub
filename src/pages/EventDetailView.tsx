@@ -261,67 +261,47 @@ const EventDetailView: React.FC = () => {
               )}
             </div>
             
-            <div className="prose prose-invert max-w-none text-gray-300 mb-10">
+            <div className="mb-10">
               <h3 className="text-xl font-bold text-white mb-4">Description</h3>
-              <p className="whitespace-pre-wrap leading-relaxed">{event.description}</p>
+              <div 
+                className="prose prose-invert max-w-none text-gray-300 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: event.description }}
+              />
             </div>
             
             {(() => {
-              let parsedDates: any[] = [];
-              try {
-                if (typeof event.important_dates === 'string') {
-                  parsedDates = JSON.parse(event.important_dates);
-                } else if (event.important_dates) {
-                  parsedDates = event.important_dates as any[];
+              const importantDates = (() => {
+                try {
+                  if (!event.important_dates) return [];
+                  if (Array.isArray(event.important_dates)) return event.important_dates;
+                  if (typeof event.important_dates === 'string') {
+                    return JSON.parse(event.important_dates);
+                  }
+                  return [];
+                } catch {
+                  return [];
                 }
-                if (!Array.isArray(parsedDates)) {
-                  parsedDates = parsedDates ? [parsedDates] : [];
-                }
-              } catch (e) {
-                parsedDates = [];
-              }
-              
-              if (!parsedDates || parsedDates.length === 0) {
-                return (
-                  <div className="mb-10">
-                    <h3 className="text-xl font-bold text-white mb-6">Important Dates</h3>
-                    <p className="text-gray-400 text-sm">No important dates specified.</p>
-                  </div>
-                );
-              }
+              })();
 
               return (
-                <div className="mb-10">
-                  <h3 className="text-xl font-bold text-white mb-6">Important Dates</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {parsedDates.map((dateObj: any, idx: number) => {
-                      if (!dateObj) return null;
-                      const isString = typeof dateObj === 'string';
-                      const dateString = isString ? dateObj : (dateObj.date_value || dateObj.date || dateObj);
-                      const dateVal = new Date(dateString);
-                      const isValidDate = !isNaN(dateVal.getTime());
-                      const label = isString ? 'Important Date' : (dateObj.label || dateObj.title || 'Important Date');
-                      
-                      return (
-                        <GlowCard key={idx} customSize glowColor="gold" className="flex flex-col !bg-dark-900 p-5 rounded-xl border-0 shadow-lg relative overflow-hidden group">
-                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-600 to-primary-900 opacity-50 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-primary-400 font-bold text-xs mb-2 uppercase tracking-widest">
-                            {label}
-                          </span>
-                          <span className="text-gray-200 font-medium text-lg mb-1">
-                            {isValidDate ? dateVal.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : (isString ? dateString : 'TBA')}
-                          </span>
-                          <span className="text-gray-500 text-sm font-medium">
-                            {isValidDate ? dateVal.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
-                          </span>
-                        </GlowCard>
-                      );
-                    })}
-                  </div>
-                </div>
+                <section className="mt-8 mb-10">
+                  <h2 className="text-lg font-semibold text-amber-400 mb-4">Important Dates</h2>
+                  {importantDates.length === 0 ? (
+                    <p className="text-gray-500 text-sm">No important dates specified.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {importantDates.map((item: { label: string; date: string; title?: string; date_value?: string }, index: number) => (
+                        <li key={index} className="flex justify-between text-sm text-gray-300 border-b border-dark-700 pb-2">
+                          <span>{item.label || item.title || 'Important Date'}</span>
+                          <span className="text-amber-400">{item.date || item.date_value || 'TBA'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
               );
             })()}
-            
+
             {event.registration_link && (
               <div className="flex flex-col sm:flex-row items-center justify-between bg-dark-800 p-6 rounded-xl border border-dark-700 mt-8">
                 <div className="mb-4 sm:mb-0 text-center sm:text-left">
